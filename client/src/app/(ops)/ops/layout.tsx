@@ -6,6 +6,8 @@ import clsx from "clsx";
 import OpsSidebar from "@/components/ops/OpsSidebar";
 import OpsSubSidebar, { getActiveModuleId } from "@/components/ops/OpsSubSidebar";
 import OpsHeader from "@/components/ops/OpsHeader";
+import NotificationCenter from "@/app/components/NotificationCenter";
+import useRoleNotifications from "@/hooks/useRoleNotifications";
 import {
   getOpsBreadcrumbs,
   getOpsDescription,
@@ -22,6 +24,7 @@ export default function OpsLayout({
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isSubnavOpen, setIsSubnavOpen] = useState(false);
+  useRoleNotifications("admin");
 
   const activeModuleId = useMemo(() => getActiveModuleId(pathname), [pathname]);
   const activeModuleNav = activeModuleId ? SUB_NAV_BY_MODULE[activeModuleId] : null;
@@ -90,6 +93,7 @@ export default function OpsLayout({
               onToggleSidebar={() => setIsSidebarOpen((prev) => !prev)}
               onToggleSubnav={hasSubnav ? () => setIsSubnavOpen((prev) => !prev) : undefined}
               showSubnavToggle={hasSubnav}
+              actions={<NotificationCenter audience="admin" />}
             />
             <div className="mt-6 w-full min-w-0">{children}</div>
           </div>

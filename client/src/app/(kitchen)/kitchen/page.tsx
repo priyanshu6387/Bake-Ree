@@ -175,7 +175,7 @@ export default function KitchenQueuePage() {
           ))}
         </div>
 
-        <div className="mt-6 grid gap-6 lg:grid-cols-[320px_1fr] lg:items-start">
+        <div className="mt-6">
           <FiltersBar
             status={statusFilter}
             type={typeFilter}
@@ -212,7 +212,7 @@ export default function KitchenQueuePage() {
             }}
           />
 
-          <div>
+          <div className="mt-6">
           {filteredOrders.length === 0 ? (
             <div className="text-center py-12 rounded-3xl border border-[#e7ddcf] bg-white/80 shadow-sm">
               <p className="text-xl font-semibold text-[#2a2927]">No orders found</p>

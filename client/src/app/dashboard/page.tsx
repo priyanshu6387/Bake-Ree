@@ -391,7 +391,7 @@ export default function CustomerDashboard() {
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
-            <NotificationCenter />
+            <NotificationCenter audience="user" />
             <div className="inline-flex items-center gap-2 rounded-full border border-[#e6dacb] bg-white/80 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-[#6b4f2a]">
               <span
                 className={`h-2 w-2 rounded-full ${

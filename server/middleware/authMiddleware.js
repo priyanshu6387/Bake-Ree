@@ -1,6 +1,11 @@
 import jwt from "jsonwebtoken";
 import User from "../models/User.js";
 
+const resolveDevUser = async () => {
+  const user = await User.findOne().select("-password");
+  return user || null;
+};
+
 // 🛡️ Middleware: Protect routes (requires valid token)
 const protect = async (req, res, next) => {
   const isDev = process.env.NODE_ENV !== "production";
@@ -9,8 +14,12 @@ const protect = async (req, res, next) => {
 
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
       if (isDev) {
-        req.user = { _id: "dev", role: "admin", isAdmin: true };
-        return next();
+        const devUser = await resolveDevUser();
+        if (devUser) {
+          req.user = devUser;
+          return next();
+        }
+        return res.status(401).json({ error: "Unauthorized: No dev user found" });
       }
       return res.status(401).json({ error: "Unauthorized: No token provided" });
     }
@@ -29,8 +38,12 @@ const protect = async (req, res, next) => {
   } catch (err) {
     console.error("🔐 JWT Error:", err.message);
     if (isDev) {
-      req.user = { _id: "dev", role: "admin", isAdmin: true };
-      return next();
+      const devUser = await resolveDevUser();
+      if (devUser) {
+        req.user = devUser;
+        return next();
+      }
+      return res.status(401).json({ error: "Unauthorized: No dev user found" });
     }
     return res.status(403).json({ error: "Invalid or expired token" });
   }

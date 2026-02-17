@@ -5,6 +5,8 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { adminNav } from "./admin-nav";
 import { getAdminSubnav, hasAdminSubnav } from "./admin-subnav";
+import NotificationCenter from "@/app/components/NotificationCenter";
+import useRoleNotifications from "@/hooks/useRoleNotifications";
 
 const isActive = (pathname: string, href: string) =>
   pathname === href || (href !== "/admin" && pathname.startsWith(href + "/"));
@@ -19,6 +21,7 @@ export default function AdminLayout({
   const subnav = getAdminSubnav(pathname);
   const [manualCollapsed, setManualCollapsed] = useState(false);
   const [subnavVisible, setSubnavVisible] = useState(true);
+  useRoleNotifications("admin");
   const hasSubnav = Boolean(subnav);
   const showSubnav = hasSubnav && subnavVisible;
   const isCollapsed = showSubnav ? true : manualCollapsed;
@@ -293,7 +296,12 @@ export default function AdminLayout({
             </aside>
           ) : null}
 
-          <main>{children}</main>
+          <div className="space-y-4">
+            <div className="flex justify-end">
+              <NotificationCenter audience="admin" />
+            </div>
+            <main>{children}</main>
+          </div>
         </div>
       </div>
     </div>

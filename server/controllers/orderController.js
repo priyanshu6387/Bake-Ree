@@ -280,7 +280,7 @@ export const updateOrderStatus = async (req, res) => {
 
     // Emit Socket.io event for real-time updates (non-blocking)
     try {
-      emitOrderStatusUpdated(order, oldStatus);
+      emitOrderStatusUpdated(order, oldStatus, req.user);
     } catch (err) {
       console.error("Failed to emit order status updated event:", err);
       // Don't fail the status update if socket emission fails

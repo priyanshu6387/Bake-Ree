@@ -220,6 +220,30 @@ html {
   scrollbar-width: none;
 }
 
+.visible-scrollbar {
+  scrollbar-width: auto;
+  scrollbar-color: #cbbca9 #f6f1ea;
+}
+
+.visible-scrollbar::-webkit-scrollbar {
+  height: 8px;
+  width: 8px;
+}
+
+.visible-scrollbar::-webkit-scrollbar-track {
+  background: #f6f1ea;
+  border-radius: 999px;
+}
+
+.visible-scrollbar::-webkit-scrollbar-thumb {
+  background: #cbbca9;
+  border-radius: 999px;
+}
+
+.visible-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #b7a58f;
+}
+
 /* -------------------- */
 /* Print Layout */
 /* -------------------- */

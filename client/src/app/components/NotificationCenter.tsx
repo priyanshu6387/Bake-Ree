@@ -1,24 +1,151 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useNotificationStore } from "../../store/notificationStore";
 import {
   HiBell,
   HiX,
-  HiCheck,
   HiShoppingBag,
   HiGift,
   HiSparkles,
   HiCog,
 } from "react-icons/hi";
 import { format } from "timeago.js";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import toast from "react-hot-toast";
+import type { Notification } from "@/types/notification";
 
-export default function NotificationCenter() {
+type NotificationAudience = "user" | "kitchen" | "admin";
+type NotificationCategoryId =
+  | "all"
+  | "my_orders"
+  | "rewards"
+  | "offers"
+  | "account"
+  | "incoming"
+  | "approvals"
+  | "prep"
+  | "dispatch"
+  | "orders"
+  | "alerts"
+  | "team"
+  | "system_admin";
+
+type NotificationCenterProps = {
+  audience?: NotificationAudience;
+};
+
+const CATEGORY_CHIPS: Record<
+  NotificationAudience,
+  { id: NotificationCategoryId; label: string }[]
+> = {
+  user: [
+    { id: "all", label: "All" },
+    { id: "my_orders", label: "My Orders" },
+    { id: "rewards", label: "Rewards" },
+    { id: "offers", label: "Offers" },
+    { id: "account", label: "Account" },
+  ],
+  kitchen: [
+    { id: "all", label: "All" },
+    { id: "incoming", label: "Incoming Orders" },
+    { id: "approvals", label: "Admin Approvals" },
+    { id: "prep", label: "Prep / Queue" },
+    { id: "dispatch", label: "Dispatch" },
+  ],
+  admin: [
+    { id: "all", label: "All" },
+    { id: "orders", label: "Orders" },
+    { id: "alerts", label: "Alerts / Exceptions" },
+    { id: "team", label: "Team Ops" },
+    { id: "system_admin", label: "System" },
+  ],
+};
+
+const includesAny = (text: string, keywords: string[]) =>
+  keywords.some((keyword) => text.includes(keyword));
+
+const getCombinedText = (notification: Notification) =>
+  `${notification.title} ${notification.message}`.toLowerCase();
+
+const matchesCategory = (
+  notification: Notification,
+  category: NotificationCategoryId,
+  audience: NotificationAudience
+) => {
+  if (category === "all") return true;
+
+  const text = getCombinedText(notification);
+
+  if (audience === "user") {
+    if (category === "my_orders") {
+      return (
+        notification.type === "order" ||
+        includesAny(text, ["order", "delivery", "pickup", "status", "shipped"])
+      );
+    }
+    if (category === "rewards") {
+      return (
+        notification.type === "points" ||
+        includesAny(text, ["reward", "points", "tier", "loyalty", "redeem"])
+      );
+    }
+    if (category === "offers") {
+      return (
+        notification.type === "promotion" ||
+        includesAny(text, ["offer", "promo", "promotion", "discount", "sale", "deal"])
+      );
+    }
+    if (category === "account") {
+      return (
+        notification.type === "system" ||
+        includesAny(text, ["account", "profile", "password", "security", "address", "settings"])
+      );
+    }
+  }
+
+  if (audience === "kitchen") {
+    if (category === "incoming") {
+      return (
+        notification.type === "order" ||
+        includesAny(text, ["new order", "incoming", "queue", "ticket"])
+      );
+    }
+    if (category === "approvals") {
+      return includesAny(text, ["approved", "approval", "admin", "permission", "hold"]);
+    }
+    if (category === "prep") {
+      return includesAny(text, ["preparing", "ready", "kitchen", "station", "recipe", "allergen"]);
+    }
+    if (category === "dispatch") {
+      return includesAny(text, ["dispatch", "handoff", "delivery", "rider", "pickup"]);
+    }
+  }
+
+  if (audience === "admin") {
+    if (category === "orders") {
+      return notification.type === "order" || includesAny(text, ["order", "queue", "status"]);
+    }
+    if (category === "alerts") {
+      return includesAny(text, ["alert", "exception", "delay", "risk", "critical", "issue", "stock", "hold"]);
+    }
+    if (category === "team") {
+      return includesAny(text, ["kitchen", "delivery", "staff", "employee", "shift", "attendance"]);
+    }
+    if (category === "system_admin") {
+      return notification.type === "system" || includesAny(text, ["system", "settings", "audit", "security", "integration"]);
+    }
+  }
+
+  return false;
+};
+
+export default function NotificationCenter({ audience }: NotificationCenterProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [activeCategory, setActiveCategory] = useState<NotificationCategoryId>("all");
   const dropdownRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
+  const pathname = usePathname();
   const {
     notifications,
     unreadCount,
@@ -27,6 +154,19 @@ export default function NotificationCenter() {
     removeNotification,
     clearAll,
   } = useNotificationStore();
+
+  const resolvedAudience: NotificationAudience = useMemo(() => {
+    if (audience) return audience;
+    if (pathname?.startsWith("/kitchen")) return "kitchen";
+    if (pathname?.startsWith("/admin") || pathname?.startsWith("/ops")) return "admin";
+    return "user";
+  }, [audience, pathname]);
+
+  const categoryChips = CATEGORY_CHIPS[resolvedAudience];
+
+  useEffect(() => {
+    setActiveCategory("all");
+  }, [resolvedAudience]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -61,7 +201,11 @@ export default function NotificationCenter() {
     }
   };
 
-  const handleNotificationClick = (notification: any) => {
+  const filteredNotifications = notifications.filter((notification) =>
+    matchesCategory(notification, activeCategory, resolvedAudience)
+  );
+
+  const handleNotificationClick = (notification: Notification) => {
     markAsRead(notification.id);
 
     if (notification.link) {
@@ -74,7 +218,7 @@ export default function NotificationCenter() {
   };
 
   return (
-    <div className="relative" ref={dropdownRef}>
+    <div className="relative z-[90]" ref={dropdownRef}>
       {/* Bell Icon Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
@@ -91,7 +235,7 @@ export default function NotificationCenter() {
 
       {/* Dropdown */}
       {isOpen && (
-        <div className="absolute right-0 mt-3 w-80 md:w-96 rounded-3xl border border-white/80 bg-white/95 shadow-[0_25px_60px_rgba(35,25,10,0.18)] z-50 max-h-[600px] flex flex-col">
+        <div className="absolute right-0 mt-3 w-80 md:w-96 rounded-3xl border border-white/80 bg-white/95 shadow-[0_25px_60px_rgba(35,25,10,0.18)] z-[120] max-h-[600px] flex flex-col">
           {/* Header */}
           <div className="flex items-center justify-between border-b border-[#efe5d8] p-4">
             <div>
@@ -123,19 +267,41 @@ export default function NotificationCenter() {
             </div>
           </div>
 
+          <div className="border-b border-[#efe5d8] px-3 py-2">
+            <div className="no-scrollbar flex gap-2 overflow-x-scroll pb-1">
+              {categoryChips.map((category) => {
+                const active = activeCategory === category.id;
+                return (
+                  <button
+                    key={category.id}
+                    type="button"
+                    onClick={() => setActiveCategory(category.id)}
+                    className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
+                      active
+                        ? "border-[#2a2927] bg-[#2a2927] text-white"
+                        : "border-[#e6dacb] bg-white text-[#6b5f53] hover:bg-[#f6f1ea]"
+                    }`}
+                  >
+                    {category.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
           {/* Notifications List */}
-          <div className="overflow-y-auto flex-1">
-            {notifications.length === 0 ? (
+          <div className="no-scrollbar flex-1 overflow-y-scroll">
+            {filteredNotifications.length === 0 ? (
               <div className="p-8 text-center text-[#8b7b69]">
                 <HiBell className="text-4xl mx-auto mb-2 opacity-60" />
-                <p>No notifications yet</p>
+                <p>No notifications in this category</p>
                 <p className="text-sm mt-1">
-                  You'll see order updates and promotions here
+                  Try another category or check back in a moment
                 </p>
               </div>
             ) : (
               <div className="divide-y divide-[#efe5d8]">
-                {notifications.map((notification) => (
+                {filteredNotifications.map((notification) => (
                   <div
                     key={notification.id}
                     className={`p-4 transition cursor-pointer ${

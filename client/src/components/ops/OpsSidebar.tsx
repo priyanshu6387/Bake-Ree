@@ -77,7 +77,7 @@ export default function OpsSidebar({
             {!isCollapsed && (
               <div>
                 <p className="text-sm font-semibold text-[#2a2927]">Bake-Ree</p>
-                <p className="text-xs text-[#6b6b6b]">Operations Console</p>
+                <p className="text-xs text-[#6b6b6b]">Admin Console · Ops</p>
               </div>
             )}
           </div>

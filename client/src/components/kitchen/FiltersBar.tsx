@@ -96,7 +96,7 @@ export default function FiltersBar({
   ]);
 
   return (
-    <section className="h-auto w-full rounded-2xl border border-black/5 bg-white/80 p-4 shadow-sm backdrop-blur">
+    <section className="h-auto w-full rounded-2xl border border-black/5 bg-white/85 p-4 shadow-sm backdrop-blur">
       <div className="flex items-center justify-between">
         <div className="text-[11px] font-semibold uppercase tracking-wider text-neutral-500">
           Filters
@@ -119,8 +119,17 @@ export default function FiltersBar({
         </div>
       </div>
 
-      <div className={clsx("mt-3 gap-3", mobileOpen ? "grid" : "hidden lg:grid")}>
-        <div className="grid gap-3 lg:grid-cols-2">
+      <div className={clsx("mt-3 gap-2.5", mobileOpen ? "grid" : "hidden lg:grid")}>
+        <div className="grid gap-2.5 md:grid-cols-2 xl:grid-cols-[minmax(260px,1.4fr)_repeat(5,minmax(120px,1fr))]">
+          <label className="block md:col-span-2 xl:col-span-1">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-neutral-500">Search</span>
+            <input
+              value={search}
+              onChange={(event) => onSearchChange(event.target.value)}
+              placeholder="Order id or customer"
+              className="mt-1 h-9 w-full rounded-xl border border-[#eadfd1] bg-white px-3 text-sm text-[#2a2927]"
+            />
+          </label>
           <label className="block">
             <span className="text-[11px] font-semibold uppercase tracking-wider text-neutral-500">
               Status
@@ -128,7 +137,7 @@ export default function FiltersBar({
             <select
               value={status}
               onChange={(event) => onStatusChange(event.target.value)}
-              className="mt-1 h-10 w-full rounded-xl border border-[#eadfd1] bg-white px-3 text-sm text-[#2a2927]"
+              className="mt-1 h-9 w-full rounded-xl border border-[#eadfd1] bg-white px-3 text-sm text-[#2a2927]"
             >
               {statusOptions.map((option) => (
                 <option key={option} value={option}>
@@ -144,7 +153,7 @@ export default function FiltersBar({
             <select
               value={type}
               onChange={(event) => onTypeChange(event.target.value)}
-              className="mt-1 h-10 w-full rounded-xl border border-[#eadfd1] bg-white px-3 text-sm text-[#2a2927]"
+              className="mt-1 h-9 w-full rounded-xl border border-[#eadfd1] bg-white px-3 text-sm text-[#2a2927]"
             >
               {typeOptions.map((option) => (
                 <option key={option} value={option}>
@@ -160,7 +169,7 @@ export default function FiltersBar({
             <select
               value={priority}
               onChange={(event) => onPriorityChange(event.target.value)}
-              className="mt-1 h-10 w-full rounded-xl border border-[#eadfd1] bg-white px-3 text-sm text-[#2a2927]"
+              className="mt-1 h-9 w-full rounded-xl border border-[#eadfd1] bg-white px-3 text-sm text-[#2a2927]"
             >
               {priorityOptions.map((option) => (
                 <option key={option} value={option}>
@@ -176,7 +185,7 @@ export default function FiltersBar({
             <select
               value={station}
               onChange={(event) => onStationChange(event.target.value)}
-              className="mt-1 h-10 w-full rounded-xl border border-[#eadfd1] bg-white px-3 text-sm text-[#2a2927]"
+              className="mt-1 h-9 w-full rounded-xl border border-[#eadfd1] bg-white px-3 text-sm text-[#2a2927]"
             >
               {stationOptions.map((option) => (
                 <option key={option} value={option}>
@@ -192,7 +201,7 @@ export default function FiltersBar({
             <select
               value={assigned}
               onChange={(event) => onAssignedChange(event.target.value)}
-              className="mt-1 h-10 w-full rounded-xl border border-[#eadfd1] bg-white px-3 text-sm text-[#2a2927]"
+              className="mt-1 h-9 w-full rounded-xl border border-[#eadfd1] bg-white px-3 text-sm text-[#2a2927]"
             >
               {assignedOptions.map((option) => (
                 <option key={option} value={option}>
@@ -201,18 +210,9 @@ export default function FiltersBar({
               ))}
             </select>
           </label>
-          <label className="block lg:col-span-2">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-neutral-500">Search</span>
-            <input
-              value={search}
-              onChange={(event) => onSearchChange(event.target.value)}
-              placeholder="Order id or customer"
-              className="mt-1 h-10 w-full rounded-xl border border-[#eadfd1] bg-white px-3 text-sm text-[#2a2927]"
-            />
-          </label>
         </div>
 
-        <div className="rounded-xl border border-[#efe5d8] bg-[#fbf8f3] px-3 py-2">
+        <div className="rounded-xl border border-[#efe5d8] bg-[#fbf8f3] px-3 py-1.5">
           <button
             type="button"
             onClick={() => setAdvancedOpen((prev) => !prev)}
@@ -223,22 +223,22 @@ export default function FiltersBar({
           </button>
           <div
             className={clsx(
-              "grid gap-3 overflow-hidden transition-[max-height,opacity] duration-200",
-              advancedOpen ? "mt-3 max-h-[420px] opacity-100" : "max-h-0 opacity-0"
+              "grid gap-3 overflow-hidden transition-[max-height,opacity] duration-200 lg:grid-cols-[1fr_220px]",
+              advancedOpen ? "mt-2 max-h-[360px] opacity-100" : "max-h-0 opacity-0"
             )}
           >
             <div className={clsx(advancedOpen && "pt-3 border-t border-black/5")}>
               <p className="text-[11px] font-semibold uppercase tracking-wider text-neutral-500">
                 Attention
               </p>
-              <div className="mt-2 flex flex-wrap gap-2">
+              <div className="mt-2 flex flex-wrap gap-1.5">
                 {attentionOptions.map((option) => (
                   <button
                     key={option}
                     type="button"
                     onClick={() => onAttentionChange(option)}
                     className={clsx(
-                      "rounded-full border px-2.5 py-1 text-[11px] font-semibold transition",
+                      "rounded-full border px-2.5 py-0.5 text-[11px] font-semibold transition",
                       attention === option
                         ? "border-[#2a2927] bg-[#2a2927] text-white"
                         : "border-[#eadfd1] bg-white text-[#2a2927] hover:bg-[#f6efe6]"
@@ -254,7 +254,7 @@ export default function FiltersBar({
               <select
                 value={sort}
                 onChange={(event) => onSortChange(event.target.value)}
-                className="mt-1 h-10 w-full rounded-xl border border-[#eadfd1] bg-white px-3 text-sm text-[#2a2927]"
+                className="mt-1 h-9 w-full rounded-xl border border-[#eadfd1] bg-white px-3 text-sm text-[#2a2927]"
               >
                 {sortOptions.map((option) => (
                   <option key={option} value={option}>
@@ -267,14 +267,14 @@ export default function FiltersBar({
         </div>
 
         {appliedFilters.length > 0 && (
-          <div className="flex flex-wrap items-center gap-2 text-[11px]">
+          <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
             <span className="font-semibold uppercase tracking-wider text-neutral-500">Applied</span>
             {appliedFilters.map((item) => (
               <button
                 key={item.id}
                 type="button"
                 onClick={item.onClear}
-                className="inline-flex items-center gap-1 rounded-full border border-[#eadfd1] bg-white px-2.5 py-1 font-semibold text-[#2a2927] transition hover:bg-[#f6efe6]"
+                className="inline-flex items-center gap-1 rounded-full border border-[#eadfd1] bg-white px-2.5 py-0.5 font-semibold text-[#2a2927] transition hover:bg-[#f6efe6]"
               >
                 {item.label}
                 <span className="text-[#a89787]">×</span>
@@ -283,7 +283,7 @@ export default function FiltersBar({
             <button
               type="button"
               onClick={onClearAll}
-              className="rounded-full border border-[#eadfd1] px-2.5 py-1 font-semibold text-[#6b5f53] transition hover:bg-[#f6efe6]"
+              className="rounded-full border border-[#eadfd1] px-2.5 py-0.5 font-semibold text-[#6b5f53] transition hover:bg-[#f6efe6]"
             >
               Clear all
             </button>

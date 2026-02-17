@@ -48,7 +48,7 @@ export const emitOrderCreated = (order) => {
  * @param {Object} order - Order object (should be populated)
  * @param {String} oldStatus - Previous status
  */
-export const emitOrderStatusUpdated = (order, oldStatus) => {
+export const emitOrderStatusUpdated = (order, oldStatus, actor = null) => {
   try {
     const io = getIO();
     
@@ -64,11 +64,26 @@ export const emitOrderStatusUpdated = (order, oldStatus) => {
       updatedAt: order.updatedAt,
     };
 
+    const updatedBy = actor
+      ? {
+          _id: actor._id,
+          role: actor.role,
+          isAdmin: actor.isAdmin === true,
+        }
+      : null;
+
+    const approvedByAdmin =
+      Boolean(updatedBy?.isAdmin || updatedBy?.role === "admin") &&
+      ["Pending", "HOLD", "Hold", "Cancelled"].includes(oldStatus) &&
+      ["Preparing", "Ready"].includes(order.status);
+
     // Emit to kitchen room
     io.to("kitchen").emit("order:statusUpdated", {
       order: orderData,
       oldStatus,
       newStatus: order.status,
+      updatedBy,
+      approvedByAdmin,
     });
 
     // Emit to admin room
@@ -76,6 +91,8 @@ export const emitOrderStatusUpdated = (order, oldStatus) => {
       order: orderData,
       oldStatus,
       newStatus: order.status,
+      updatedBy,
+      approvedByAdmin,
     });
 
     // Emit to specific user room (for customer notifications)
@@ -84,7 +101,18 @@ export const emitOrderStatusUpdated = (order, oldStatus) => {
         order: orderData,
         oldStatus,
         newStatus: order.status,
+        updatedBy,
+        approvedByAdmin,
       });
+    }
+
+    if (approvedByAdmin) {
+      const payload = {
+        order: orderData,
+        approvedBy: updatedBy,
+      };
+      io.to("kitchen").emit("order:approved", payload);
+      io.to("admin").emit("order:approved", payload);
     }
 
     console.log(
@@ -225,4 +253,3 @@ export default {
   emitDeliveryStatusUpdated,
   emitToAdmin,
 };
-

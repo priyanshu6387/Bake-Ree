@@ -2,6 +2,8 @@
 
 import { FiRefreshCw } from "react-icons/fi";
 import clsx from "clsx";
+import NotificationCenter from "@/app/components/NotificationCenter";
+import useRoleNotifications from "@/hooks/useRoleNotifications";
 
 type KitchenHeaderProps = {
   title: string;
@@ -22,8 +24,10 @@ export default function KitchenHeader({
   isLive = true,
   lastUpdatedLabel,
 }: KitchenHeaderProps) {
+  useRoleNotifications("kitchen", { playChimeOnAdminApproval: true });
+
   return (
-    <header className="bg-white/80 backdrop-blur border-b border-[#efe5d8] -mx-4 lg:-mx-8">
+    <header className="relative z-30 bg-white/80 backdrop-blur border-b border-[#efe5d8] -mx-4 lg:-mx-8">
       <div className="w-full px-4 py-4 lg:px-8">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div>
@@ -54,6 +58,7 @@ export default function KitchenHeader({
                 Refresh
               </button>
             )}
+            <NotificationCenter audience="kitchen" />
             <div className="flex items-center gap-2 rounded-full border border-[#efe5d8] bg-white px-3 py-1 text-xs font-medium">
               <div
                 className={clsx(
