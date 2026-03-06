@@ -42,6 +42,7 @@ export default function FeaturedProducts() {
   const onAdd = () => {
     addToCart({
       id: pid,
+      productId: p._id,
       name: p.name,
       image: p.image || "/placeholder.jpg",
       price: p.price,

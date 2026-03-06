@@ -2,6 +2,8 @@
 
 "use client";
 
+import Link from "next/link";
+
 export default function NotFound() {
   return (
     <section
@@ -16,12 +18,12 @@ export default function NotFound() {
           transform: "translate(-50%, -50%)",
         }}
       >
-        <a
+        <Link
           href="/"
           className="inline-block px-8 py-3 text-lg font-semibold bg-[#7f6df2] text-white rounded-full hover:bg-[#6b5fcf] transition shadow-md"
         >
           Go Back Home
-        </a>
+        </Link>
       </div>
     </section>
   );

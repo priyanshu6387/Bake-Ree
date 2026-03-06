@@ -1,8 +1,10 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import type { AppliedCouponState } from "@/types/coupons";
 
 type CartItem = {
-  id: number;               // numeric id for cart
+  id: number; // legacy numeric id for cart
+  productId: string; // canonical MongoDB product id for checkout/order creation
   name: string;
   image: string;
   price: number;
@@ -13,6 +15,7 @@ type CartStore = {
   cart: CartItem[];
   promoCode: string;
   discountRate: number;
+  appliedCoupon: AppliedCouponState | null;
 
   addToCart: (item: CartItem) => void;
   removeFromCart: (id: string | number) => void;
@@ -20,6 +23,9 @@ type CartStore = {
   clearCart: () => void;
   setPromoCode: (code: string, discount: number) => void;
   clearPromoCode: () => void;
+  setAppliedCoupon: (coupon: AppliedCouponState) => void;
+  setCouponReservation: (reservationToken: string, expiresAt: string) => void;
+  clearAppliedCoupon: () => void;
 
   inc: (id: string | number) => void;
   dec: (id: string | number) => void;
@@ -33,14 +39,18 @@ export const useCartStore = create<CartStore>()(
       cart: [],
       promoCode: '',
       discountRate: 0,
+      appliedCoupon: null,
 
       addToCart: (newItem) =>
         set((state) => {
-          const existing = state.cart.find((item) => item.id === newItem.id);
+          const existing = state.cart.find(
+            (item) =>
+              item.productId === newItem.productId || item.id === newItem.id
+          );
           if (existing) {
             return {
               cart: state.cart.map((item) =>
-                item.id === newItem.id
+                item.productId === newItem.productId || item.id === newItem.id
                   ? { ...item, quantity: item.quantity + 1 }
                   : item
               ),
@@ -64,7 +74,13 @@ export const useCartStore = create<CartStore>()(
           ),
         })),
 
-      clearCart: () => set({ cart: [] }),
+      clearCart: () =>
+        set({
+          cart: [],
+          promoCode: '',
+          discountRate: 0,
+          appliedCoupon: null,
+        }),
 
       setPromoCode: (code, discount) =>
         set({
@@ -74,6 +90,31 @@ export const useCartStore = create<CartStore>()(
 
       clearPromoCode: () =>
         set({
+          promoCode: '',
+          discountRate: 0,
+        }),
+
+      setAppliedCoupon: (coupon) =>
+        set({
+          appliedCoupon: coupon,
+          promoCode: coupon.code,
+          discountRate: coupon.discountType === "PERCENT" ? coupon.discountValue / 100 : 0,
+        }),
+
+      setCouponReservation: (reservationToken, expiresAt) =>
+        set((state) => ({
+          appliedCoupon: state.appliedCoupon
+            ? {
+                ...state.appliedCoupon,
+                reservationToken,
+                reservationExpiresAt: expiresAt,
+              }
+            : null,
+        })),
+
+      clearAppliedCoupon: () =>
+        set({
+          appliedCoupon: null,
           promoCode: '',
           discountRate: 0,
         }),

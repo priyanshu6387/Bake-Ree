@@ -6,17 +6,33 @@ import {
   sendWelcomeEmail,
   sendPasswordResetEmail,
 } from "../services/emailService.js";
+import { resolveAccessContextForUser } from "../services/accessControlService.js";
+
+const normalizeAllergyList = (value) => {
+  if (!value) return [];
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => String(item || "").trim())
+      .filter(Boolean);
+  }
+  return String(value)
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+};
 
 // 🔑 Helper to generate JWT
 const generateToken = async (userId) => {
   try {
-    const user = await User.findById(userId).select("role isAdmin");
+    const user = await User.findById(userId).select("role isAdmin accessRoleKey permissions");
+    const accessContext = user ? await resolveAccessContextForUser(user, { persistRoleKey: true }) : null;
     const tokenExpiresIn = process.env.JWT_EXPIRES_IN || "14d";
     return jwt.sign(
       {
         id: userId,
         role: user?.role || "customer",
         isAdmin: user?.isAdmin || false,
+        accessRoleKey: accessContext?.roleKey || user?.accessRoleKey || null,
       },
       process.env.JWT_SECRET,
       {
@@ -197,7 +213,16 @@ export const getCurrentUser = async (req, res) => {
     if (!user) {
       return res.status(404).json({ error: "User not found" });
     }
-    res.status(200).json(user);
+    const accessContext = req.accessContext ?? (await resolveAccessContextForUser(user, { persistRoleKey: true }));
+    const userObj = user.toObject();
+    res.status(200).json({
+      ...userObj,
+      accessRoleKey: accessContext.roleKey,
+      roleName: accessContext.roleName,
+      permissions: accessContext.permissions,
+      navPolicy: accessContext.navPolicy,
+      settingsVersion: accessContext.settingsVersion,
+    });
   } catch (error) {
     console.error("Error getting current user:", error);
     res.status(500).json({ error: "Failed to get user profile" });
@@ -210,7 +235,7 @@ export const getCurrentUser = async (req, res) => {
  */
 export const updateProfile = async (req, res) => {
   try {
-    const { name, email, phone } = req.body;
+    const { name, email, phone, allergyPreferences, allergies, allergyNotes } = req.body;
     const userId = req.user._id;
 
     // Check if email is being changed and if it's already taken
@@ -226,6 +251,20 @@ export const updateProfile = async (req, res) => {
     if (name) updateData.name = name;
     if (email) updateData.email = email;
     if (phone !== undefined) updateData.phone = phone;
+    if (allergyPreferences || allergies || allergyNotes !== undefined) {
+      const incomingAllergies = normalizeAllergyList(
+        allergyPreferences?.allergies ?? allergies
+      );
+      const incomingNotes =
+        allergyPreferences?.notes !== undefined
+          ? allergyPreferences.notes
+          : allergyNotes;
+
+      updateData.allergyPreferences = {
+        allergies: incomingAllergies,
+        notes: incomingNotes !== undefined ? String(incomingNotes || "").trim() : "",
+      };
+    }
 
     // Update user
     const updatedUser = await User.findByIdAndUpdate(

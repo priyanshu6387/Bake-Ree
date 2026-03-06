@@ -1,43 +1,56 @@
 import { getIO } from "../config/socket.js";
+import { normalizeOrderStatus } from "./orderLifecycleService.js";
+
+const serializeOrder = (order) => {
+  if (!order) return null;
+
+  return {
+    _id: order._id,
+    user: order.user,
+    items: order.items,
+    status: normalizeOrderStatus(order.status),
+    orderType: order.orderType,
+    totalAmount: order.totalAmount,
+    deliveryCharge: order.deliveryCharge,
+    specialInstructions: order.specialInstructions,
+    allergies: order.allergies || [],
+    allergyNotes: order.allergyNotes || "",
+    requiresAllergyCheck: Boolean(order.requiresAllergyCheck),
+    priority: order.priority,
+    station: order.station,
+    paymentMethod: order.paymentMethod,
+    paymentStatus: order.paymentStatus,
+    approval: order.approval,
+    hold: order.hold,
+    deliveryAddress: order.deliveryAddress,
+    assignedKitchenStaff: order.assignedKitchenStaff,
+    createdAt: order.createdAt,
+    updatedAt: order.updatedAt,
+  };
+};
+
+const emitToOrderRooms = ({ event, payload, userId }) => {
+  const io = getIO();
+  io.to("kitchen").emit(event, payload);
+  io.to("admin").emit(event, payload);
+  if (userId) {
+    io.to(`user:${userId}`).emit(event, payload);
+  }
+};
 
 /**
  * Emit order created event to all connected clients
- * @param {Object} order - Order object (should be populated)
  */
 export const emitOrderCreated = (order) => {
   try {
-    const io = getIO();
-    
-    const orderData = {
-      _id: order._id,
-      user: order.user,
-      items: order.items,
-      status: order.status,
-      orderType: order.orderType,
-      totalAmount: order.totalAmount,
-      deliveryCharge: order.deliveryCharge,
-      createdAt: order.createdAt,
-      updatedAt: order.updatedAt,
-    };
-    
-    // Emit to kitchen room
-    io.to("kitchen").emit("order:created", {
-      order: orderData,
+    const orderData = serializeOrder(order);
+    emitToOrderRooms({
+      event: "order:created",
+      payload: { order: orderData },
+      userId: order?.user?._id || order?.user,
     });
 
-    // Emit to admin room
-    io.to("admin").emit("order:created", {
-      order: orderData,
-    });
-
-    // Emit to specific user room (for customer notifications)
-    if (order.user && order.user._id) {
-      io.to(`user:${order.user._id}`).emit("order:created", {
-        order: orderData,
-      });
-    }
-
-    console.log(`📢 Emitted order:created event for order ${order._id}`);
+    console.log(`📢 Emitted order:created event for order ${order?._id}`);
   } catch (error) {
     console.error("Error emitting order:created event:", error);
   }
@@ -45,24 +58,10 @@ export const emitOrderCreated = (order) => {
 
 /**
  * Emit order status updated event to all connected clients
- * @param {Object} order - Order object (should be populated)
- * @param {String} oldStatus - Previous status
  */
 export const emitOrderStatusUpdated = (order, oldStatus, actor = null) => {
   try {
-    const io = getIO();
-    
-    const orderData = {
-      _id: order._id,
-      user: order.user,
-      items: order.items,
-      status: order.status,
-      orderType: order.orderType,
-      totalAmount: order.totalAmount,
-      deliveryCharge: order.deliveryCharge,
-      createdAt: order.createdAt,
-      updatedAt: order.updatedAt,
-    };
+    const orderData = serializeOrder(order);
 
     const updatedBy = actor
       ? {
@@ -72,60 +71,102 @@ export const emitOrderStatusUpdated = (order, oldStatus, actor = null) => {
         }
       : null;
 
-    const approvedByAdmin =
-      Boolean(updatedBy?.isAdmin || updatedBy?.role === "admin") &&
-      ["Pending", "HOLD", "Hold", "Cancelled"].includes(oldStatus) &&
-      ["Preparing", "Ready"].includes(order.status);
-
-    // Emit to kitchen room
-    io.to("kitchen").emit("order:statusUpdated", {
+    const payload = {
       order: orderData,
-      oldStatus,
-      newStatus: order.status,
+      oldStatus: normalizeOrderStatus(oldStatus),
+      newStatus: normalizeOrderStatus(order?.status),
       updatedBy,
-      approvedByAdmin,
+    };
+
+    emitToOrderRooms({
+      event: "order:statusUpdated",
+      payload,
+      userId: order?.user?._id || order?.user,
     });
-
-    // Emit to admin room
-    io.to("admin").emit("order:statusUpdated", {
-      order: orderData,
-      oldStatus,
-      newStatus: order.status,
-      updatedBy,
-      approvedByAdmin,
-    });
-
-    // Emit to specific user room (for customer notifications)
-    if (order.user && order.user._id) {
-      io.to(`user:${order.user._id}`).emit("order:statusUpdated", {
-        order: orderData,
-        oldStatus,
-        newStatus: order.status,
-        updatedBy,
-        approvedByAdmin,
-      });
-    }
-
-    if (approvedByAdmin) {
-      const payload = {
-        order: orderData,
-        approvedBy: updatedBy,
-      };
-      io.to("kitchen").emit("order:approved", payload);
-      io.to("admin").emit("order:approved", payload);
-    }
 
     console.log(
-      `📢 Emitted order:statusUpdated event for order ${order._id}: ${oldStatus} → ${order.status}`
+      `📢 Emitted order:statusUpdated event for order ${order?._id}: ${oldStatus} → ${order?.status}`
     );
   } catch (error) {
     console.error("Error emitting order:statusUpdated event:", error);
   }
 };
 
+export const emitOrderApprovalUpdated = (order, approvalDecision, actor = null, reason = "") => {
+  try {
+    const payload = {
+      order: serializeOrder(order),
+      decision: approvalDecision,
+      reason,
+      updatedBy: actor
+        ? {
+            _id: actor._id,
+            role: actor.role,
+            isAdmin: actor.isAdmin === true,
+          }
+        : null,
+      approvedAt: order?.approval?.approvedAt || null,
+      rejectedAt: order?.approval?.rejectedAt || null,
+    };
+
+    emitToOrderRooms({
+      event: "order:approvalUpdated",
+      payload,
+      userId: order?.user?._id || order?.user,
+    });
+
+    if (approvalDecision === "APPROVED") {
+      emitToOrderRooms({
+        event: "order:approved",
+        payload: {
+          order: serializeOrder(order),
+          approvedBy: payload.updatedBy,
+          reason,
+        },
+        userId: order?.user?._id || order?.user,
+      });
+    }
+
+    console.log(
+      `📢 Emitted order:approvalUpdated for order ${order?._id}: ${approvalDecision}`
+    );
+  } catch (error) {
+    console.error("Error emitting order:approvalUpdated event:", error);
+  }
+};
+
+export const emitOrderRequestCreated = (request, order) => {
+  try {
+    emitToOrderRooms({
+      event: "order:requestCreated",
+      payload: {
+        request,
+        order: serializeOrder(order),
+      },
+      userId: order?.user?._id || order?.user,
+    });
+  } catch (error) {
+    console.error("Error emitting order:requestCreated event:", error);
+  }
+};
+
+export const emitOrderRequestReviewed = (request, order) => {
+  try {
+    emitToOrderRooms({
+      event: "order:requestReviewed",
+      payload: {
+        request,
+        order: serializeOrder(order),
+      },
+      userId: order?.user?._id || order?.user,
+    });
+  } catch (error) {
+    console.error("Error emitting order:requestReviewed event:", error);
+  }
+};
+
 /**
  * Emit order deleted event (if needed in future)
- * @param {String} orderId - Order ID
  */
 export const emitOrderDeleted = (orderId) => {
   try {
@@ -140,14 +181,11 @@ export const emitOrderDeleted = (orderId) => {
 
 /**
  * Emit delivery location updated event
- * @param {String} deliveryId - Delivery ID
- * @param {Object} location - Current location {lat, lng}
- * @param {Object} delivery - Delivery object
  */
 export const emitDeliveryLocationUpdated = (deliveryId, location, delivery) => {
   try {
     const io = getIO();
-    
+
     const locationData = {
       deliveryId,
       location,
@@ -161,34 +199,32 @@ export const emitDeliveryLocationUpdated = (deliveryId, location, delivery) => {
       timestamp: new Date(),
     };
 
-    // Emit to admin room
     io.to("admin").emit("delivery:locationUpdated", locationData);
 
-    // Emit to delivery staff room (if assigned)
     if (delivery.deliveryStaff) {
       io.to(`staff:${delivery.deliveryStaff}`).emit("delivery:locationUpdated", locationData);
     }
 
-    // Emit to order owner
     if (delivery.order && delivery.order.user) {
-      io.to(`user:${delivery.order.user._id || delivery.order.user}`).emit("delivery:locationUpdated", locationData);
+      io.to(`user:${delivery.order.user._id || delivery.order.user}`).emit(
+        "delivery:locationUpdated",
+        locationData
+      );
     }
 
     console.log(`📍 Emitted delivery:locationUpdated for delivery ${deliveryId}`);
   } catch (error) {
-    console.error("Error emitting delivery:locationUpdated event:", error);
+    console.error("Error emitting delivery:locationUpdated:", error);
   }
 };
 
 /**
  * Emit delivery status updated event
- * @param {Object} delivery - Delivery object
- * @param {String} oldStatus - Previous status
  */
 export const emitDeliveryStatusUpdated = (delivery, oldStatus) => {
   try {
     const io = getIO();
-    
+
     const deliveryData = {
       _id: delivery._id,
       order: delivery.order,
@@ -198,14 +234,12 @@ export const emitDeliveryStatusUpdated = (delivery, oldStatus) => {
       estimatedTimeRemaining: delivery.estimatedTimeRemaining,
     };
 
-    // Emit to admin room
     io.to("admin").emit("delivery:statusUpdated", {
       delivery: deliveryData,
       oldStatus,
       newStatus: delivery.status,
     });
 
-    // Emit to order owner
     if (delivery.order && delivery.order.user) {
       io.to(`user:${delivery.order.user._id || delivery.order.user}`).emit("delivery:statusUpdated", {
         delivery: deliveryData,
@@ -214,7 +248,6 @@ export const emitDeliveryStatusUpdated = (delivery, oldStatus) => {
       });
     }
 
-    // If delivered, emit completion event
     if (delivery.status === "Delivered") {
       if (delivery.order && delivery.order.user) {
         io.to(`user:${delivery.order.user._id || delivery.order.user}`).emit("delivery:completed", {
@@ -224,16 +257,16 @@ export const emitDeliveryStatusUpdated = (delivery, oldStatus) => {
       }
     }
 
-    console.log(`📢 Emitted delivery:statusUpdated for delivery ${delivery._id}: ${oldStatus} → ${delivery.status}`);
+    console.log(
+      `📢 Emitted delivery:statusUpdated for delivery ${delivery._id}: ${oldStatus} → ${delivery.status}`
+    );
   } catch (error) {
-    console.error("Error emitting delivery:statusUpdated event:", error);
+    console.error("Error emitting delivery:statusUpdated:", error);
   }
 };
 
 /**
  * Emit event to admin room
- * @param {String} event - Event name
- * @param {Object} data - Event data
  */
 export const emitToAdmin = (event, data) => {
   try {
@@ -248,6 +281,9 @@ export const emitToAdmin = (event, data) => {
 export default {
   emitOrderCreated,
   emitOrderStatusUpdated,
+  emitOrderApprovalUpdated,
+  emitOrderRequestCreated,
+  emitOrderRequestReviewed,
   emitOrderDeleted,
   emitDeliveryLocationUpdated,
   emitDeliveryStatusUpdated,

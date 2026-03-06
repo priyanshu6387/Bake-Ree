@@ -17,7 +17,10 @@ const products: AdminSubnavItem[] = [
 
 const inventory: AdminSubnavItem[] = [];
 
-const crm: AdminSubnavItem[] = [];
+const crm: AdminSubnavItem[] = [
+  { label: "Offers & Coupons", href: "/admin/crm/engagement/offers" },
+  { label: "Campaigns", href: "/admin/crm/engagement/campaigns" },
+];
 
 const erp: AdminSubnavItem[] = [];
 

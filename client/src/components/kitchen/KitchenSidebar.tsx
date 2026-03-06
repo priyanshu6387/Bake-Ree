@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import clsx from "clsx";
 import { useRouter } from "next/navigation";
-import { kitchenNav } from "@/lib/kitchen/nav";
+import { kitchenNav, type KitchenNavItem } from "@/lib/kitchen/nav";
 import { clearStoredToken } from "@/utils/jwt";
 
 const getMatchScore = (pathname: string, href: string) => {
@@ -15,14 +15,20 @@ const getMatchScore = (pathname: string, href: string) => {
 
 type KitchenSidebarProps = {
   isOpen: boolean;
+  navItems?: KitchenNavItem[];
   onClose: () => void;
 };
 
-export default function KitchenSidebar({ isOpen, onClose }: KitchenSidebarProps) {
+export default function KitchenSidebar({
+  isOpen,
+  navItems = kitchenNav,
+  onClose,
+}: KitchenSidebarProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const activeHref = kitchenNav
-    .map((item) => ({ href: item.href, score: getMatchScore(pathname, item.href) }))
+  const safePathname = pathname ?? "/kitchen";
+  const activeHref = navItems
+    .map((item) => ({ href: item.href, score: getMatchScore(safePathname, item.href) }))
     .filter((item) => item.score >= 0)
     .sort((a, b) => b.score - a.score)[0]?.href;
 
@@ -61,7 +67,7 @@ export default function KitchenSidebar({ isOpen, onClose }: KitchenSidebarProps)
         </div>
 
         <div className="no-scrollbar mt-6 min-h-0 flex-1 space-y-1.5 overflow-y-auto pr-2">
-          {kitchenNav.map((item) => {
+          {navItems.map((item) => {
             const active = item.href === activeHref;
             const Icon = item.icon;
             return (

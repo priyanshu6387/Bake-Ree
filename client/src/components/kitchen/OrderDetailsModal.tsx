@@ -10,6 +10,8 @@ type OrderDetailsModalProps = {
 
 export default function OrderDetailsModal({ open, order, onClose }: OrderDetailsModalProps) {
   if (!open || !order) return null;
+  const displayCode =
+    order.id.length >= 8 ? order.id.slice(-8).toUpperCase() : order.id;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
@@ -17,7 +19,7 @@ export default function OrderDetailsModal({ open, order, onClose }: OrderDetails
         <div className="flex items-start justify-between gap-4">
           <div>
             <p className="text-[11px] uppercase tracking-[0.2em] text-[#7a6f63]">Order details</p>
-            <h2 className="text-xl font-semibold text-[#2a2927]">#{order.id}</h2>
+            <h2 className="text-xl font-semibold text-[#2a2927]">#{displayCode}</h2>
             <p className="mt-1 text-sm text-[#6b5f53]">
               {order.orderType} · {order.priority} · {order.station}
             </p>
@@ -63,6 +65,13 @@ export default function OrderDetailsModal({ open, order, onClose }: OrderDetails
             <div className="md:col-span-2 rounded-2xl border border-[#efe5d8] bg-[#fbf8f3] p-4 text-sm">
               <p className="text-[11px] uppercase tracking-[0.2em] text-[#7a6f63]">Special instructions</p>
               <p className="mt-2">{order.specialInstructions}</p>
+            </div>
+          )}
+          {order.allergens && order.allergens.length > 0 && (
+            <div className="md:col-span-2 rounded-2xl border border-rose-200/70 bg-rose-50 p-4 text-sm text-rose-900">
+              <p className="text-[11px] uppercase tracking-[0.2em] text-rose-700">Allergy Alert</p>
+              <p className="mt-2 font-semibold">{order.allergens.join(", ")}</p>
+              {order.allergyNotes && <p className="mt-1">{order.allergyNotes}</p>}
             </div>
           )}
           {order.hold && (

@@ -45,8 +45,11 @@ export default function LoginPage() {
       // ✅ Redirect after login
       toast.success("Logged in successfully");
       router.push("/dashboard"); // Change if needed
-    } catch (error: any) {
-      toast.error(error.response?.data?.error || "Login failed. Please try again.");
+    } catch (error: unknown) {
+      const message = axios.isAxiosError(error)
+        ? error.response?.data?.error
+        : null;
+      toast.error(message || "Login failed. Please try again.");
       console.error("Login error:", error);
     } finally {
       setLoading(false);

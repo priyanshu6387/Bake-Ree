@@ -20,7 +20,8 @@ export default function OpsPageContent({
   comingSoonDescription,
 }: OpsPageContentProps) {
   const pathname = usePathname();
-  const meta = findOpsRouteMeta(pathname);
+  const safePathname = pathname ?? "/ops";
+  const meta = findOpsRouteMeta(safePathname);
 
   return (
     <div className="space-y-6">

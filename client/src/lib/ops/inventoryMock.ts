@@ -1,4 +1,11 @@
-export const inventoryKpis = [
+type InventoryKpiTone = "neutral" | "positive" | "warning" | "critical";
+
+export const inventoryKpis: Array<{
+  label: string;
+  value: string;
+  hint: string;
+  tone: InventoryKpiTone;
+}> = [
   { label: "Total Items", value: "1,284", hint: "Across 6 warehouses", tone: "neutral" },
   { label: "Total Value", value: "$2.48M", hint: "Weighted avg costing", tone: "positive" },
   { label: "Low Stock SKUs", value: "38", hint: "Below reorder point", tone: "warning" },

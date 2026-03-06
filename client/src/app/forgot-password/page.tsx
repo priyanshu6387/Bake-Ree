@@ -2,8 +2,6 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
-import { useRouter } from "next/navigation";
 import axios from "axios";
 import { HiMail } from "react-icons/hi";
 import toast from "react-hot-toast";
@@ -13,8 +11,6 @@ export default function ForgotPasswordPage() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
-
-  const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,10 +30,10 @@ export default function ForgotPasswordPage() {
       );
       toast.success("Reset link sent");
       setEmail(""); // Clear email for security
-    } catch (error: any) {
+    } catch (error: unknown) {
       const errorMessage =
-        error.response?.data?.error ||
-          "Something went wrong. Please try again later.";
+        (axios.isAxiosError(error) ? error.response?.data?.error : null) ||
+        "Something went wrong. Please try again later.";
       setError(errorMessage);
       toast.error(errorMessage);
     } finally {
@@ -54,7 +50,7 @@ export default function ForgotPasswordPage() {
             Forgot Password?
           </h1>
           <p className="mt-2 text-sm text-[#2a2927]">
-            No worries! Enter your email address and we'll send you a link to
+            No worries! Enter your email address and we will send you a link to
             reset your password.
           </p>
         </div>
@@ -119,7 +115,7 @@ export default function ForgotPasswordPage() {
         {/* Don't have an account */}
         <div className="mt-4 text-center">
           <p className="text-sm text-[#2a2927]">
-            Don't have an account?{" "}
+            Do not have an account?{" "}
             <Link
               href="/registration"
               className="font-medium underline hover:text-black"

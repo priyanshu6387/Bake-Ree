@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactElement, type ReactNode } from "react";
 import { adminNav } from "./admin-nav";
 import { getAdminSubnav, hasAdminSubnav } from "./admin-subnav";
 import NotificationCenter from "@/app/components/NotificationCenter";
@@ -11,14 +11,24 @@ import useRoleNotifications from "@/hooks/useRoleNotifications";
 const isActive = (pathname: string, href: string) =>
   pathname === href || (href !== "/admin" && pathname.startsWith(href + "/"));
 
+const mapAdminPathToOpsPath = (pathname: string) => {
+  if (pathname === "/admin/settings") return "/ops/settings";
+  if (pathname.startsWith("/admin/settings/roles")) return "/ops/settings/roles";
+  if (pathname.startsWith("/admin/settings/locations")) return "/ops/settings/navigation";
+  if (pathname.startsWith("/admin/settings/integrations")) return "/ops/settings/integrations";
+  if (pathname.startsWith("/admin/settings/audit")) return "/ops/settings/audit";
+  return "/ops";
+};
+
 export default function AdminLayout({
   children,
 }: {
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
   const router = useRouter();
   const pathname = usePathname();
-  const subnav = getAdminSubnav(pathname);
+  const safePathname = pathname ?? "/ops";
+  const subnav = getAdminSubnav(safePathname);
   const [manualCollapsed, setManualCollapsed] = useState(false);
   const [subnavVisible, setSubnavVisible] = useState(true);
   useRoleNotifications("admin");
@@ -33,12 +43,12 @@ export default function AdminLayout({
   }, [hasSubnav]);
 
   useEffect(() => {
-    if (pathname?.startsWith("/admin")) {
-      router.replace("/ops");
+    if (safePathname.startsWith("/admin")) {
+      router.replace(mapAdminPathToOpsPath(safePathname));
     }
-  }, [pathname, router]);
+  }, [safePathname, router]);
 
-  if (pathname?.startsWith("/admin")) {
+  if (safePathname.startsWith("/admin")) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#f3f2ec] text-sm text-[#6b6b6b]">
         Redirecting to Ops Console…
@@ -46,7 +56,7 @@ export default function AdminLayout({
     );
   }
 
-  const iconMap: Record<string, JSX.Element> = {
+  const iconMap: Record<string, ReactElement> = {
     Overview: (
       <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2">
         <path d="M3 12l9-9 9 9" />
@@ -180,7 +190,7 @@ export default function AdminLayout({
             )}
             <nav className={`flex-1 space-y-2 ${isCollapsed ? "items-center" : ""}`}>
               {adminNav.map((item) => {
-                const active = isActive(pathname, item.href);
+                const active = isActive(safePathname, item.href);
                 const hasSub = hasAdminSubnav(item.href);
                 return (
                   <Link
@@ -248,7 +258,7 @@ export default function AdminLayout({
             </button>
           </aside>
 
-          {showSubnav ? (
+          {showSubnav && subnav ? (
             <aside className="sticky top-4 h-fit self-start rounded-2xl border border-black/10 bg-white p-4 shadow-sm">
               <div className="mb-4 flex items-center justify-between">
                 <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#7a766f]">
@@ -272,7 +282,7 @@ export default function AdminLayout({
               {subnav.items.length > 0 ? (
                 <nav className="space-y-2">
                   {subnav.items.map((item) => {
-                    const active = isActive(pathname, item.href);
+                    const active = isActive(safePathname, item.href);
                     return (
                       <Link
                         key={item.href}

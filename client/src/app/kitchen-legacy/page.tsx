@@ -86,11 +86,11 @@ export default function KitchenDashboard() {
       });
       setOrders(response.data || []);
       setLastUpdated(new Date());
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error fetching orders:", error);
       
       let errorMessage = "Failed to fetch orders";
-      if (error.response) {
+      if (axios.isAxiosError(error) && error.response) {
         // Server responded with error status
         if (error.response.status === 401) {
           errorMessage = "Unauthorized: Please login again";
@@ -103,7 +103,7 @@ export default function KitchenDashboard() {
         } else if (error.response.data?.error) {
           errorMessage = error.response.data.error;
         }
-      } else if (error.request) {
+      } else if (axios.isAxiosError(error) && error.request) {
         // Request made but no response
         errorMessage = "Network error: Unable to connect to server. Please check if the server is running.";
       }
@@ -124,7 +124,7 @@ export default function KitchenDashboard() {
         headers: { Authorization: `Bearer ${token}` },
       });
       setKitchenStaff(response.data);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error fetching kitchen staff:", error);
       // Don't show error toast - staff assignment is optional
     }
@@ -134,6 +134,7 @@ export default function KitchenDashboard() {
   useEffect(() => {
     fetchOrders();
     fetchKitchenStaff();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Socket.io event listeners
@@ -208,9 +209,12 @@ export default function KitchenDashboard() {
       );
 
       toast.success(`Order ${id.slice(-8).toUpperCase()} marked as ${newStatus}`);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error updating order status:", error);
-      toast.error(error.response?.data?.error || "Failed to update order status");
+      const message = axios.isAxiosError(error)
+        ? error.response?.data?.error
+        : null;
+      toast.error(message || "Failed to update order status");
       // Refetch on error
       fetchOrders();
     }
@@ -242,9 +246,12 @@ export default function KitchenDashboard() {
           ? `Staff assigned to order ${orderId.slice(-8).toUpperCase()}`
           : `Staff unassigned from order ${orderId.slice(-8).toUpperCase()}`
       );
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error assigning staff:", error);
-      toast.error(error.response?.data?.error || "Failed to assign staff");
+      const message = axios.isAxiosError(error)
+        ? error.response?.data?.error
+        : null;
+      toast.error(message || "Failed to assign staff");
     } finally {
       setAssigningStaff(null);
     }

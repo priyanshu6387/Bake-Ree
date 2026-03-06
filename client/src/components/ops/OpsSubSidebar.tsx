@@ -4,45 +4,55 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import clsx from "clsx";
 import { X } from "lucide-react";
-import { SUB_NAV_BY_MODULE, type ModuleId, type OpsSubNavGroup } from "@/lib/ops/nav";
+import {
+  SUB_NAV_BY_MODULE,
+  type ModuleId,
+  type OpsSubNavGroup,
+  type OpsSubNavModule,
+} from "@/lib/ops/nav";
 
 const getMatchScore = (pathname: string, href: string) => {
+  const normalizedPath = pathname.startsWith("/admin") ? pathname.replace(/^\/admin/, "/ops") : pathname;
   const escaped = href.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const pattern = escaped.replace(/\\\[[^/]+?\\\]/g, "[^/]+");
   const regex = new RegExp(`^${pattern}$`);
 
-  if (regex.test(pathname)) return href.length + 1000;
+  if (regex.test(normalizedPath)) return href.length + 1000;
   if (href.includes("[")) {
     const base = href.split("[")[0];
-    return pathname.startsWith(base) ? base.length : -1;
+    return normalizedPath.startsWith(base) ? base.length : -1;
   }
-  if (pathname === href) return href.length + 1000;
-  if (pathname.startsWith(`${href}/`)) return href.length;
+  if (normalizedPath === href) return href.length + 1000;
+  if (normalizedPath.startsWith(`${href}/`)) return href.length;
   return -1;
 };
 
 const resolveHref = (href: string) => href.replace(/\[[^/]+?\]/g, "1");
 
 export const getActiveModuleId = (pathname: string): ModuleId | null => {
-  if (pathname === "/ops") return null;
-  if (pathname.startsWith("/ops/hr")) return "hr";
-  if (pathname.startsWith("/ops/erp/staff")) return "staff";
-  if (pathname.startsWith("/ops/orders")) return "orders";
-  if (pathname.startsWith("/ops/production")) return "production";
-  if (pathname.startsWith("/ops/inventory")) return "inventory";
-  if (pathname.startsWith("/ops/procurement")) return "inventory";
-  if (pathname.startsWith("/ops/logistics")) return "logistics";
-  if (pathname.startsWith("/ops/finance")) return "finance";
-  if (pathname.startsWith("/ops/crm")) return "crm";
-  if (pathname.startsWith("/ops/loyalty")) return "crm";
-  if (pathname.startsWith("/ops/analytics")) return "analytics";
-  if (pathname.startsWith("/ops/settings")) return "settings";
+  const normalizedPath = pathname.startsWith("/admin")
+    ? pathname.replace(/^\/admin/, "/ops")
+    : pathname;
+  if (normalizedPath === "/ops") return null;
+  if (normalizedPath.startsWith("/ops/crm/engagement/offers")) return "coupons";
+  if (normalizedPath.startsWith("/ops/hr")) return "hr";
+  if (normalizedPath.startsWith("/ops/erp/staff")) return "staff";
+  if (normalizedPath.startsWith("/ops/orders")) return "orders";
+  if (normalizedPath.startsWith("/ops/production")) return "production";
+  if (normalizedPath.startsWith("/ops/inventory")) return "inventory";
+  if (normalizedPath.startsWith("/ops/procurement")) return "inventory";
+  if (normalizedPath.startsWith("/ops/logistics")) return "logistics";
+  if (normalizedPath.startsWith("/ops/finance")) return "finance";
+  if (normalizedPath.startsWith("/ops/crm")) return "crm";
+  if (normalizedPath.startsWith("/ops/loyalty")) return "crm";
+  if (normalizedPath.startsWith("/ops/analytics")) return "analytics";
+  if (normalizedPath.startsWith("/ops/settings")) return "settings";
   return null;
 };
 
 const toGroups = (
   moduleId: ModuleId,
-  moduleNav: (typeof SUB_NAV_BY_MODULE)[ModuleId]
+  moduleNav: OpsSubNavModule
 ): OpsSubNavGroup[] => {
   if (moduleNav.groups) return moduleNav.groups;
   if (!moduleNav.items || moduleNav.items.length === 0) return [];
@@ -57,17 +67,23 @@ const toGroups = (
 
 type OpsSubSidebarProps = {
   isOpen: boolean;
+  subNavByModule?: Record<ModuleId, OpsSubNavModule>;
   onClose: () => void;
 };
 
-export default function OpsSubSidebar({ isOpen, onClose }: OpsSubSidebarProps) {
+export default function OpsSubSidebar({
+  isOpen,
+  subNavByModule = SUB_NAV_BY_MODULE,
+  onClose,
+}: OpsSubSidebarProps) {
   const pathname = usePathname();
-  const activeModuleId = getActiveModuleId(pathname);
-  const moduleNav = activeModuleId ? SUB_NAV_BY_MODULE[activeModuleId] : null;
+  const safePathname = pathname ?? "/ops";
+  const activeModuleId = getActiveModuleId(safePathname);
+  const moduleNav = activeModuleId ? subNavByModule[activeModuleId] : null;
   const groups = activeModuleId && moduleNav ? toGroups(activeModuleId, moduleNav) : [];
   const activeHref = groups
     .flatMap((group) => group.items)
-    .map((item) => ({ href: item.href, score: getMatchScore(pathname, item.href) }))
+    .map((item) => ({ href: item.href, score: getMatchScore(safePathname, item.href) }))
     .filter((item) => item.score >= 0)
     .sort((a, b) => b.score - a.score)[0]?.href;
 

@@ -42,6 +42,7 @@ export default function ProductCard({ product }: Props) {
   const onAdd = () => {
     addToCart({
       id: pid,
+      productId: product._id,
       name: product.name,
       image: product.image || "/placeholder.jpg",
       price: product.price,
@@ -80,11 +81,12 @@ export default function ProductCard({ product }: Props) {
         setInWishlist(true);
         toast.success("Added to wishlist");
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Wishlist error:", error);
-      toast.error(
-        error.response?.data?.error || "Failed to update wishlist"
-      );
+      const message = axios.isAxiosError(error)
+        ? error.response?.data?.error
+        : null;
+      toast.error(message || "Failed to update wishlist");
     } finally {
       setWishlistLoading(false);
     }

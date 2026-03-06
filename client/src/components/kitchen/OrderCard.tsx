@@ -62,6 +62,8 @@ export default function OrderCard({
   onAssignDispatch,
   onComplete,
 }: OrderCardProps) {
+  const displayCode =
+    order.id.length >= 8 ? order.id.slice(-8).toUpperCase() : order.id;
   const minutesElapsed = Math.max(
     0,
     Math.floor((Date.now() - new Date(order.createdAt).getTime()) / 60000)
@@ -96,7 +98,7 @@ export default function OrderCard({
     >
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h2 className="text-lg font-semibold text-[#2a2927]">#{order.id}</h2>
+          <h2 className="text-lg font-semibold text-[#2a2927]">#{displayCode}</h2>
           <p className="text-[11px] text-[#7a6f63]">
             Created {new Date(order.createdAt).toLocaleTimeString()} · {minutesElapsed} min elapsed
           </p>
@@ -150,6 +152,12 @@ export default function OrderCard({
           <div className="mt-3 rounded-xl border border-[#efe5d8] bg-[#fbf8f3] px-3 py-2 text-xs text-[#6b5f53]">
             <p className="font-semibold text-[#2a2927]">Special instructions</p>
             <p className="mt-1 break-words">{order.specialInstructions}</p>
+          </div>
+        )}
+        {order.allergens && order.allergens.length > 0 && (
+          <div className="mt-3 rounded-xl border border-rose-200/70 bg-rose-50 px-3 py-2 text-xs text-rose-900">
+            <p className="font-semibold">Allergy alert: {order.allergens.join(", ")}</p>
+            {order.allergyNotes && <p className="mt-1 break-words">{order.allergyNotes}</p>}
           </div>
         )}
         <div className="mt-3 flex items-center gap-2 text-[11px] text-[#6b5f53]">

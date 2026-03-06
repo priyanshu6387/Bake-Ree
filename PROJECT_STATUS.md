@@ -52,7 +52,7 @@ Bake-Ree is a comprehensive bakery management system with a solid foundation. Th
 - ✅ **User Login** - Authentication with JWT tokens
 - ✅ **Product Details** - View individual product information
 - ✅ **Cart Management** - Quantity updates, item removal
-- ✅ **Promo Code System** - Basic discount code functionality (UI only)
+- ✅ **Promo Code System** - Server-validated coupon validation/reservation/consumption with expiry and limits
 - ✅ **Delivery Fee Calculation** - Distance-based delivery charges
 - ✅ **Order Confirmation** - Order receipt/invoice page
 - ✅ **About Page** - Bakery information
@@ -113,6 +113,11 @@ Bake-Ree is a comprehensive bakery management system with a solid foundation. Th
   - ✅ Recent orders display
   - ✅ Weekly statistics (last 7 days)
   - ✅ Chart visualizations (Chart.js, Recharts)
+- ✅ **Coupon Management Console**
+  - ✅ Create/publish/pause/expire coupons
+  - ✅ General + targeted + auto-recommended coupon support
+  - ✅ Assignment workflow for user-specific coupons
+  - ✅ Coupon analytics summary and redemption reporting
 - ✅ **Admin Authentication** - Role-based access control
 - ✅ **Admin Layout** - Protected admin routes
 
@@ -771,7 +776,13 @@ Bake-Ree has a **solid foundation** with core features implemented and working. 
 
 ---
 
-**Last Updated:** December 2024  
+## 🧭 Lifecycle Documentation
+
+- `docs/order-lifecycle-architecture.md` - canonical architecture, sequence, flow, and state diagrams
+- `docs/order-lifecycle-api.md` - lifecycle endpoints, request workflow contracts, and transition matrix
+
+---
+
+**Last Updated:** February 17, 2026  
 **Next Review:** Monthly  
 **Maintained By:** Development Team
-

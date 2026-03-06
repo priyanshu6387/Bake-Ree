@@ -1,14 +1,5 @@
-import AdminSectionShell from "../../components/AdminSectionShell";
+import { redirect } from "next/navigation";
 
-export default function AdminSubPage() {
-  return (
-    <AdminSectionShell
-      title="Audit Log"
-      subtitle="Admin / Settings"
-      description="System activity and change history."
-      items={[]}
-      primaryAction={{ label: "Configure", href: "/admin" }}
-      secondaryAction={{ label: "Export", href: "/admin" }}
-    />
-  );
+export default function AdminSettingsAuditRedirectPage() {
+  redirect("/ops/settings/audit");
 }

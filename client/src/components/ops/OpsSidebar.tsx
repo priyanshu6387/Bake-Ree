@@ -5,18 +5,25 @@ import { useEffect, useMemo, useState } from "react";
 import { usePathname } from "next/navigation";
 import clsx from "clsx";
 import { ChevronLeft, LogOut } from "lucide-react";
-import { TOP_NAV } from "@/lib/ops/nav";
+import { TOP_NAV, type OpsTopNavItem } from "@/lib/ops/nav";
 import { createPortal } from "react-dom";
 
-const isActive = (pathname: string, href: string) =>
-  pathname === href ||
-  (href !== "/ops" && pathname.startsWith(`${href}/`)) ||
-  (href === "/ops/inventory" && pathname.startsWith("/ops/procurement"));
+const normalizeOpsPath = (pathname: string) =>
+  pathname.startsWith("/admin") ? pathname.replace(/^\/admin/, "/ops") : pathname;
+
+const getMatchScore = (pathname: string, href: string) => {
+  const normalized = normalizeOpsPath(pathname);
+  if (normalized === href) return href.length + 1000;
+  if (href !== "/ops" && normalized.startsWith(`${href}/`)) return href.length;
+  if (href === "/ops/inventory" && normalized.startsWith("/ops/procurement")) return href.length;
+  return -1;
+};
 
 type OpsSidebarProps = {
   isOpen: boolean;
   isCollapsed: boolean;
   isCollapseLocked?: boolean;
+  navItems?: OpsTopNavItem[];
   onClose: () => void;
   onToggleCollapse: () => void;
 };
@@ -25,11 +32,24 @@ export default function OpsSidebar({
   isOpen,
   isCollapsed,
   isCollapseLocked = false,
+  navItems: navItemsProp,
   onClose,
   onToggleCollapse,
 }: OpsSidebarProps) {
   const pathname = usePathname();
-  const navItems = useMemo(() => TOP_NAV, []);
+  const safePathname = pathname ?? "/ops";
+  const navItems = useMemo(() => navItemsProp ?? TOP_NAV, [navItemsProp]);
+  const activeHref = useMemo(
+    () =>
+      navItems
+        .map((item) => ({
+          href: item.href,
+          score: getMatchScore(safePathname, item.href),
+        }))
+        .filter((item) => item.score >= 0)
+        .sort((a, b) => b.score - a.score)[0]?.href ?? null,
+    [navItems, safePathname]
+  );
   const [mounted, setMounted] = useState(false);
   const [tooltip, setTooltip] = useState<{
     label: string;
@@ -120,7 +140,7 @@ export default function OpsSidebar({
           )}
         >
           {navItems.map((item) => {
-            const active = isActive(pathname, item.href);
+            const active = item.href === activeHref;
             const Icon = item.icon;
             return (
               <Link

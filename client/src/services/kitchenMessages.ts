@@ -1,18 +1,29 @@
 import type { KitchenMessage, OrderThreadMessage } from "@/store/kitchenStore";
-
-const mockLatency = (ms = 300) => new Promise((resolve) => setTimeout(resolve, ms));
+import http from "@/services/http";
 
 export const kitchenMessagesService = {
   async list(): Promise<KitchenMessage[]> {
-    await mockLatency();
-    return [];
+    const { data } = await http.get("/kitchen/messages");
+    return data;
   },
   async create(message: KitchenMessage): Promise<KitchenMessage> {
-    await mockLatency();
-    return message;
+    const { data } = await http.post("/kitchen/messages", message);
+    return data;
   },
   async createThreadMessage(orderId: string, message: OrderThreadMessage): Promise<{ orderId: string; message: OrderThreadMessage }> {
-    await mockLatency();
-    return { orderId, message };
+    const { data } = await http.post("/kitchen/messages", {
+      orderId,
+      body: message.body,
+      sender: message.sender,
+      targetRole: "KITCHEN",
+    });
+    return {
+      orderId,
+      message: {
+        ...message,
+        id: String(data?._id || data?.id || Date.now()),
+        createdAt: data?.createdAt || new Date().toISOString(),
+      },
+    };
   },
 };

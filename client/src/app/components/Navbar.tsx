@@ -113,14 +113,14 @@ export default function Navbar() {
           <Link href="/" className="flex-shrink-0">
             <Image
               src="/images/logo.png"
-              alt="Bake Ree Logo"
+              alt="BakeRee Logo"
               width={40}
               height={40}
               className="rounded-full"
               priority
             />
           </Link>
-          <span className="text-lg ml-2 font-semibold text-[#2a2927]">Bake Ree</span>
+          <span className="text-lg ml-2 font-semibold text-[#2a2927]">BakeRee</span>
         </div>
 
         {/* Navigation Links + Icons */}

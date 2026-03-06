@@ -48,6 +48,8 @@ export const createKitchenStaff = async (req, res) => {
       password: hashedPassword,
       phone,
       role: "kitchen_staff",
+      accessRoleKey: "kitchen_prep",
+      permissions: [],
       isAdmin: false,
       isActive: true,
     });
@@ -66,7 +68,7 @@ export const createKitchenStaff = async (req, res) => {
 export const updateKitchenStaff = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, email, phone, isActive, password } = req.body;
+    const { name, email, phone, isActive, password, accessRoleKey, permissions } = req.body;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({ error: "Invalid staff ID" });
@@ -77,6 +79,8 @@ export const updateKitchenStaff = async (req, res) => {
     if (email) updateData.email = email;
     if (phone !== undefined) updateData.phone = phone;
     if (isActive !== undefined) updateData.isActive = isActive;
+    if (accessRoleKey !== undefined) updateData.accessRoleKey = accessRoleKey;
+    if (Array.isArray(permissions)) updateData.permissions = permissions;
 
     // Update password if provided
     if (password) {
@@ -176,5 +180,3 @@ export const getKitchenStaffStats = async (req, res) => {
     res.status(500).json({ error: "Failed to fetch kitchen staff statistics" });
   }
 };
-
-

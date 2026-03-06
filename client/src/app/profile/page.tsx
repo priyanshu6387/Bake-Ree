@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import axios from "axios";
 import toast from "react-hot-toast";
+import { BASE_URL } from "@/services/http";
 import {
   HiUser,
   HiMail,
@@ -16,16 +17,8 @@ import {
   HiEyeOff,
 } from "react-icons/hi";
 
-interface User {
-  _id: string;
-  name: string;
-  email: string;
-  phone?: string;
-}
-
 export default function ProfilePage() {
   const router = useRouter();
-  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState<"profile" | "password">("profile");
@@ -35,6 +28,8 @@ export default function ProfilePage() {
     name: "",
     email: "",
     phone: "",
+    allergiesInput: "",
+    allergyNotes: "",
   });
 
   // Password form state
@@ -49,11 +44,13 @@ export default function ProfilePage() {
     confirm: false,
   });
 
-  useEffect(() => {
-    fetchUserProfile();
-  }, []);
+  const parseAllergies = (input: string) =>
+    input
+      .split(",")
+      .map((value) => value.trim())
+      .filter(Boolean);
 
-  const fetchUserProfile = async () => {
+  const fetchUserProfile = useCallback(async () => {
     try {
       const token = localStorage.getItem("token");
       if (!token) {
@@ -61,24 +58,24 @@ export default function ProfilePage() {
         return;
       }
 
-      const response = await axios.get(
-        "http://localhost:5000/api/auth/me",
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      const response = await axios.get(`${BASE_URL}/api/auth/me`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
-      setUser(response.data);
       setProfileForm({
         name: response.data.name || "",
         email: response.data.email || "",
         phone: response.data.phone || "",
+        allergiesInput: Array.isArray(response.data?.allergyPreferences?.allergies)
+          ? response.data.allergyPreferences.allergies.join(", ")
+          : "",
+        allergyNotes: response.data?.allergyPreferences?.notes || "",
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error fetching profile:", error);
-      if (error.response?.status === 401) {
+      if (axios.isAxiosError(error) && error.response?.status === 401) {
         router.push("/login");
       } else {
         toast.error("Failed to load profile");
@@ -86,7 +83,11 @@ export default function ProfilePage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [router]);
+
+  useEffect(() => {
+    fetchUserProfile();
+  }, [fetchUserProfile]);
 
   const handleProfileSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -94,23 +95,31 @@ export default function ProfilePage() {
 
     try {
       const token = localStorage.getItem("token");
-      const response = await axios.put(
-        "http://localhost:5000/api/auth/profile",
-        profileForm,
+      const payload = {
+        name: profileForm.name,
+        email: profileForm.email,
+        phone: profileForm.phone,
+        allergyPreferences: {
+          allergies: parseAllergies(profileForm.allergiesInput),
+          notes: profileForm.allergyNotes.trim(),
+        },
+      };
+      await axios.put(
+        `${BASE_URL}/api/auth/profile`,
+        payload,
         {
           headers: {
             Authorization: `Bearer ${token}`,
           },
         }
       );
-
-      setUser(response.data.user);
       toast.success("Profile updated successfully!");
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error updating profile:", error);
-      toast.error(
-        error.response?.data?.error || "Failed to update profile"
-      );
+      const message = axios.isAxiosError(error)
+        ? error.response?.data?.error
+        : null;
+      toast.error(message || "Failed to update profile");
     } finally {
       setSaving(false);
     }
@@ -134,7 +143,7 @@ export default function ProfilePage() {
     try {
       const token = localStorage.getItem("token");
       await axios.put(
-        "http://localhost:5000/api/auth/change-password",
+        `${BASE_URL}/api/auth/change-password`,
         {
           currentPassword: passwordForm.currentPassword,
           newPassword: passwordForm.newPassword,
@@ -152,11 +161,12 @@ export default function ProfilePage() {
         newPassword: "",
         confirmPassword: "",
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error changing password:", error);
-      toast.error(
-        error.response?.data?.error || "Failed to change password"
-      );
+      const message = axios.isAxiosError(error)
+        ? error.response?.data?.error
+        : null;
+      toast.error(message || "Failed to change password");
     } finally {
       setSaving(false);
     }
@@ -282,6 +292,39 @@ export default function ProfilePage() {
                   }
                   className="w-full rounded-2xl border border-[#e6dacb] bg-white px-4 py-3 text-sm text-[#2a2927] shadow-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1f7a6b]/40"
                   placeholder="Enter your phone number"
+                />
+              </div>
+
+              <div className="sm:col-span-2">
+                <label className="block text-xs font-semibold uppercase tracking-[0.2em] text-[#8b7b69] mb-2">
+                  Allergy Preferences
+                </label>
+                <input
+                  type="text"
+                  value={profileForm.allergiesInput}
+                  onChange={(e) =>
+                    setProfileForm({ ...profileForm, allergiesInput: e.target.value })
+                  }
+                  className="w-full rounded-2xl border border-[#e6dacb] bg-white px-4 py-3 text-sm text-[#2a2927] shadow-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1f7a6b]/40"
+                  placeholder="e.g. nuts, dairy, gluten"
+                />
+                <p className="mt-1 text-xs text-[#7a746d]">
+                  These defaults are auto-filled during checkout and shown in kitchen.
+                </p>
+              </div>
+
+              <div className="sm:col-span-2">
+                <label className="block text-xs font-semibold uppercase tracking-[0.2em] text-[#8b7b69] mb-2">
+                  Allergy Notes
+                </label>
+                <textarea
+                  rows={3}
+                  value={profileForm.allergyNotes}
+                  onChange={(e) =>
+                    setProfileForm({ ...profileForm, allergyNotes: e.target.value })
+                  }
+                  className="w-full rounded-2xl border border-[#e6dacb] bg-white px-4 py-3 text-sm text-[#2a2927] shadow-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1f7a6b]/40"
+                  placeholder="Cross-contamination risk, severe reactions, etc."
                 />
               </div>
 

@@ -9,6 +9,7 @@ import {
   LineChart,
   Settings,
   ShoppingCart,
+  Tag,
   Truck,
   Users,
 } from "lucide-react";
@@ -20,6 +21,7 @@ export type ModuleId =
   | "logistics"
   | "finance"
   | "crm"
+  | "coupons"
   | "hr"
   | "analytics"
   | "settings"
@@ -100,6 +102,13 @@ export const TOP_NAV: OpsTopNavItem[] = [
     href: "/ops/crm",
     icon: Users,
     description: "Customer 360 views, lifecycle insights, and engagement workflows.",
+  },
+  {
+    key: "coupons",
+    label: "Coupons",
+    href: "/ops/crm/engagement/offers",
+    icon: Tag,
+    description: "Coupon studio for global, targeted, and automated promo campaigns.",
   },
   {
     key: "finance",
@@ -918,13 +927,69 @@ export const SUB_NAV_BY_MODULE: Record<ModuleId, OpsSubNavModule> = {
       },
     ],
   },
+  coupons: {
+    title: "Coupons",
+    items: [
+      {
+        label: "Coupon Studio",
+        href: "/ops/crm/engagement/offers",
+        description: "Create, activate, assign, and analyze coupon performance.",
+      },
+      {
+        label: "Campaign Coupling",
+        href: "/ops/crm/engagement/campaigns",
+        description: "Attach coupon offers to outreach campaigns.",
+      },
+    ],
+  },
   analytics: {
     title: "Analytics",
     items: [],
   },
   settings: {
     title: "Settings",
-    items: [],
+    items: [
+      {
+        label: "Navigation",
+        href: "/ops/settings/navigation",
+        description: "Control sidebar visibility, locks, and route discoverability by role.",
+      },
+      {
+        label: "Roles & Permissions",
+        href: "/ops/settings/roles",
+        description: "Manage role presets, permission matrices, and overrides.",
+      },
+      {
+        label: "Kitchen RBAC",
+        href: "/ops/settings/kitchen-rbac",
+        description: "Configure kitchen role segregation and action-level controls.",
+      },
+      {
+        label: "Workflow Policies",
+        href: "/ops/settings/workflow",
+        description: "Set approval flows, status rules, and operational guardrails.",
+      },
+      {
+        label: "Notifications",
+        href: "/ops/settings/notifications",
+        description: "Route alerts by role, channel, severity, and escalation policy.",
+      },
+      {
+        label: "Integrations",
+        href: "/ops/settings/integrations",
+        description: "Manage external providers, webhook rules, and credentials metadata.",
+      },
+      {
+        label: "Compliance",
+        href: "/ops/settings/compliance",
+        description: "Define retention, controls, and compliance policy switches.",
+      },
+      {
+        label: "Audit Log",
+        href: "/ops/settings/audit",
+        description: "Review immutable admin settings and access policy changes.",
+      },
+    ],
   },
   staff: {
     title: "Staff & Payroll",

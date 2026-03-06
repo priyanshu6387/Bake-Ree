@@ -62,11 +62,14 @@ export default function FilterBar({
         {/* Sort */}
         <div className="flex items-center md:justify-end">
           <div className="relative w-full md:w-auto">
-            <select
-              value={sort}
-              onChange={(e) => onSort(e.target.value as any)}
-              className="w-full appearance-none rounded-full bg-white px-2 py-1 pr-4 text-sm text-[#2a2927] shadow-md ring-1 ring-black/15 border border-black/15 outline-none focus:ring-2 focus:ring-emerald-600 transition"
-            >
+              <select
+                value={sort}
+                onChange={(e) => {
+                  const nextSort = e.target.value as Props["sort"];
+                  onSort(nextSort);
+                }}
+                className="w-full appearance-none rounded-full bg-white px-2 py-1 pr-4 text-sm text-[#2a2927] shadow-md ring-1 ring-black/15 border border-black/15 outline-none focus:ring-2 focus:ring-emerald-600 transition"
+              >
               <option value="newest">Newest</option>
               <option value="price-asc">Price: Low → High</option>
               <option value="price-desc">Price: High → Low</option>

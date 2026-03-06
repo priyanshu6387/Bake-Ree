@@ -3,10 +3,10 @@ type OpsKpi = {
   value: string | number;
   hint?: string;
   delta?: string;
-  tone?: "neutral" | "positive" | "warning" | "critical";
+  tone?: string;
 };
 
-const toneStyles: Record<NonNullable<OpsKpi["tone"]>, string> = {
+const toneStyles: Record<string, string> = {
   neutral: "border-black/10 bg-white",
   positive: "border-emerald-200 bg-emerald-50/60",
   warning: "border-amber-200 bg-amber-50/60",
@@ -19,7 +19,9 @@ export default function OpsKpiGrid({ items }: { items: OpsKpi[] }) {
       {items.map((item) => (
         <div
           key={item.label}
-          className={`rounded-2xl border px-4 py-3 shadow-sm ${toneStyles[item.tone ?? "neutral"]}`}
+          className={`rounded-2xl border px-4 py-3 shadow-sm ${
+            toneStyles[item.tone || "neutral"] || toneStyles.neutral
+          }`}
         >
           <p className="text-xs uppercase tracking-[0.2em] text-[#8b867f]">{item.label}</p>
           <p className="mt-2 text-xl font-semibold text-[#2a2927]">{item.value}</p>

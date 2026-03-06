@@ -7,7 +7,6 @@ import { FaGlobe } from "react-icons/fa6";
 
 export default function ContactForm() {
   const [phone, setPhone] = useState("");
-  const [showDropdown, setShowDropdown] = useState(false);
 
   return (
     <div className="relative w-full">

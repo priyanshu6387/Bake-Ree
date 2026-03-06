@@ -22,7 +22,7 @@ export default function ResetPasswordPage() {
 
   useEffect(() => {
     // Get token from URL query parameter
-    const tokenParam = searchParams.get("token");
+    const tokenParam = searchParams?.get("token") ?? null;
     if (!tokenParam) {
       setError("Invalid reset link. Please request a new password reset.");
     } else {
@@ -74,10 +74,10 @@ export default function ResetPasswordPage() {
       setTimeout(() => {
         router.push("/login");
       }, 2000);
-    } catch (error: any) {
+    } catch (error: unknown) {
       const errorMessage =
-        error.response?.data?.error ||
-          "Failed to reset password. The link may have expired. Please request a new one.";
+        (axios.isAxiosError(error) ? error.response?.data?.error : null) ||
+        "Failed to reset password. The link may have expired. Please request a new one.";
       setError(errorMessage);
       toast.error(errorMessage);
     } finally {

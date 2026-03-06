@@ -1,14 +1,5 @@
-import AdminSectionShell from "../../components/AdminSectionShell";
+import { redirect } from "next/navigation";
 
-export default function AdminSubPage() {
-  return (
-    <AdminSectionShell
-      title="Locations"
-      subtitle="Admin / Settings"
-      description="Stores, kitchens, and delivery zones."
-      items={[]}
-      primaryAction={{ label: "Configure", href: "/admin" }}
-      secondaryAction={{ label: "Export", href: "/admin" }}
-    />
-  );
+export default function AdminSettingsLocationsRedirectPage() {
+  redirect("/ops/settings/navigation");
 }

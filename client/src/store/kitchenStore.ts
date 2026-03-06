@@ -23,6 +23,7 @@ export type KitchenOrderItem = {
 
 export type KitchenOrder = {
   id: string;
+  backendStatus?: string;
   status: KitchenOrderStatus;
   createdAt: string;
   updatedAt: string;
@@ -34,6 +35,7 @@ export type KitchenOrder = {
   items: KitchenOrderItem[];
   specialInstructions?: string;
   allergens?: string[];
+  allergyNotes?: string;
   delivery: {
     address: string;
     zone: string;
@@ -237,7 +239,7 @@ const initialOrders: KitchenOrder[] = [
   },
 ];
 
-export const useKitchenStore = create<KitchenStore>((set, get) => ({
+export const useKitchenStore = create<KitchenStore>((set) => ({
   orders: initialOrders,
   stockAlerts: [
     {

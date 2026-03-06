@@ -54,6 +54,9 @@ import hrApprovalsRoutes from "./routes/hrApprovals.js";
 import hrDocumentsRoutes from "./routes/hrDocuments.js";
 import inventoryRoutes from "./routes/inventory.js";
 import procurementRoutes from "./routes/procurement.js";
+import opsSettingsRoutes from "./routes/opsSettings.js";
+import kitchenRoutes from "./routes/kitchen.js";
+import couponRoutes from "./routes/coupons.js";
 
 // Route Mounts
 app.use("/api/products", productRoutes);
@@ -85,6 +88,9 @@ app.use("/api/hr/approvals", hrApprovalsRoutes);
 app.use("/api/hr/documents", hrDocumentsRoutes);
 app.use("/api/inventory", inventoryRoutes);
 app.use("/api/procurement", procurementRoutes);
+app.use("/api/ops/settings", opsSettingsRoutes);
+app.use("/api/kitchen", kitchenRoutes);
+app.use("/api/coupons", couponRoutes);
 
 // Test Route
 app.get("/", (req, res) => {

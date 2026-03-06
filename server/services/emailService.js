@@ -158,34 +158,37 @@ export const sendOrderConfirmation = async (order, user) => {
 // Send order status update email
 export const sendOrderStatusUpdate = async (order, user, newStatus) => {
   try {
-    const statusMessages = {
-      Pending: "Your order has been received and is being processed.",
-      Preparing: "Our kitchen is now preparing your order!",
-      Ready: "Your order is ready for pickup!",
-      Delivered: "Your order has been delivered. Enjoy!",
-      Cancelled: "Your order has been cancelled.",
+    const normalizedStatus = String(newStatus || "").trim().toUpperCase();
+    const statusConfig = {
+      DELIVERED: {
+        displayStatus: "Delivered",
+        statusMessage: "Your order has been delivered. Enjoy!",
+        statusSpecificMessage: `<div style="background-color: #f0fdf4; padding: 15px; margin: 20px 0; border-radius: 4px; border-left: 4px solid #22c55e;">
+          <p style="margin: 0; color: #2a2927; font-size: 14px;">✅ Your order has been delivered! We hope you enjoy it!</p>
+        </div>`,
+      },
+      CANCELLED: {
+        displayStatus: "Cancelled",
+        statusMessage: "Your order has been cancelled.",
+        statusSpecificMessage: `<div style="background-color: #fff1f2; padding: 15px; margin: 20px 0; border-radius: 4px; border-left: 4px solid #e11d48;">
+          <p style="margin: 0; color: #2a2927; font-size: 14px;">Your order was cancelled. If this looks incorrect, please contact support.</p>
+        </div>`,
+      },
     };
 
-    // Build status-specific message HTML
-    let statusSpecificMessage = "";
-    if (newStatus === "Ready") {
-      const message = order.orderType === "Delivery" 
-        ? "🎉 Your order is ready! It's on its way to you!"
-        : "🎉 Your order is ready! You can now pick it up from our bakery!";
-      statusSpecificMessage = `<div style="background-color: #f0fdf4; padding: 15px; margin: 20px 0; border-radius: 4px; border-left: 4px solid #22c55e;">
-        <p style="margin: 0; color: #2a2927; font-size: 14px;">${message}</p>
-      </div>`;
-    } else if (newStatus === "Delivered") {
-      statusSpecificMessage = `<div style="background-color: #f0fdf4; padding: 15px; margin: 20px 0; border-radius: 4px; border-left: 4px solid #22c55e;">
-        <p style="margin: 0; color: #2a2927; font-size: 14px;">✅ Your order has been delivered! We hope you enjoy it!</p>
-      </div>`;
+    const selectedStatus = statusConfig[normalizedStatus];
+
+    // Only send status emails for delivered/cancelled events.
+    if (!selectedStatus) {
+      console.log("ℹ️ Skipping intermediate status email:", newStatus);
+      return { success: true, skipped: true };
     }
 
     const html = await loadTemplate("orderStatusUpdate.html", {
       customerName: user?.name || "Customer",
       orderNumber: order._id.toString().slice(-8).toUpperCase(),
-      newStatus,
-      statusMessage: statusMessages[newStatus] || "Your order status has been updated.",
+      newStatus: selectedStatus.displayStatus,
+      statusMessage: selectedStatus.statusMessage,
       orderDate: new Date(order.createdAt).toLocaleDateString("en-IN", {
         year: "numeric",
         month: "long",
@@ -193,12 +196,12 @@ export const sendOrderStatusUpdate = async (order, user, newStatus) => {
       }),
       total: `₹${order.totalAmount.toFixed(2)}`,
       orderType: order.orderType,
-      statusSpecificMessage,
+      statusSpecificMessage: selectedStatus.statusSpecificMessage,
     });
 
     return await sendEmail({
       to: user?.email,
-      subject: `Order Update - Order #${order._id.toString().slice(-8).toUpperCase()} is now ${newStatus}`,
+      subject: `Order Update - Order #${order._id.toString().slice(-8).toUpperCase()} is now ${selectedStatus.displayStatus}`,
       html,
     });
   } catch (error) {

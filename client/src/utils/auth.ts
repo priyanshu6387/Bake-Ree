@@ -39,15 +39,23 @@ export const getUserRole = (): string | null => {
  * Get user info from token
  * @returns {Object | null} User info or null
  */
-export const getUserInfo = (): { id: string; role?: string; isAdmin?: boolean } | null => {
+export const getUserInfo = (): {
+  id: string;
+  role?: string;
+  isAdmin?: boolean;
+  accessRoleKey?: string | null;
+} | null => {
   try {
     const decoded = getValidTokenPayload();
     if (!decoded) return null;
+    const userId = decoded.id ?? decoded.userId;
+    if (!userId) return null;
 
     return {
-      id: decoded.id || decoded.userId,
+      id: userId,
       role: decoded.role,
       isAdmin: decoded.isAdmin,
+      accessRoleKey: decoded.accessRoleKey,
     };
   } catch (error) {
     console.error("Error decoding token:", error);

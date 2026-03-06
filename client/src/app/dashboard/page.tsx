@@ -120,6 +120,7 @@ export default function CustomerDashboard() {
     fetchPointsHistory();
   };
 
+  // Initial dashboard bootstrap on first mount.
   useEffect(() => {
     // Check if user is authenticated
     const token = localStorage.getItem("token");
@@ -136,6 +137,7 @@ export default function CustomerDashboard() {
     fetchLoyaltyPoints();
     fetchPointsHistory();
     fetchRecentOrders();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router]);
 
   // Fetch recent orders
@@ -165,6 +167,7 @@ export default function CustomerDashboard() {
   };
 
   // Real-time order status updates via WebSocket
+  // Socket listeners are intentionally bound to socket connection lifecycle.
   useEffect(() => {
     if (!socket || !isConnected) return;
 
@@ -234,6 +237,7 @@ export default function CustomerDashboard() {
       socket.off("order:statusUpdated", handleOrderStatusUpdated);
       socket.off("order:created", handleOrderCreated);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [socket, isConnected]);
 
   const fetchAnalytics = async () => {
@@ -256,18 +260,20 @@ export default function CustomerDashboard() {
       );
       setAnalytics(response.data);
       setError(null); // Clear any previous errors
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error fetching analytics:", err);
+      const status = axios.isAxiosError(err) ? err.response?.status : undefined;
+      const message = axios.isAxiosError(err) ? err.response?.data?.error : undefined;
       
       // Handle authentication errors
-      if (err.response?.status === 401 || err.response?.status === 403) {
+      if (status === 401 || status === 403) {
         localStorage.removeItem("token");
         setError("Your session has expired. Please login again.");
         setTimeout(() => {
           router.push("/login");
         }, 2000);
       } else {
-        setError(err.response?.data?.error || "Failed to load analytics. Please try refreshing the page.");
+        setError(message || "Failed to load analytics. Please try refreshing the page.");
       }
     } finally {
       setLoading(false);
@@ -599,12 +605,28 @@ export default function CustomerDashboard() {
                 <div className="space-y-3">
                   {recentOrders.map((order) => {
                     const statusColors: Record<string, string> = {
+                      APPROVAL_PENDING: "bg-violet-100 text-violet-800",
+                      PENDING: "bg-yellow-100 text-yellow-800",
+                      PREPARING: "bg-orange-100 text-orange-800",
+                      READY_FOR_HANDOFF: "bg-emerald-100 text-emerald-800",
+                      DISPATCH_ASSIGNED: "bg-cyan-100 text-cyan-800",
+                      OUT_FOR_DELIVERY: "bg-blue-100 text-blue-800",
+                      PICKUP_READY: "bg-lime-100 text-lime-800",
+                      PICKED_UP: "bg-teal-100 text-teal-800",
+                      DELIVERED: "bg-indigo-100 text-indigo-800",
+                      COMPLETED: "bg-green-100 text-green-800",
+                      HOLD: "bg-rose-100 text-rose-800",
+                      CANCELLED: "bg-red-100 text-red-800",
                       Pending: "bg-yellow-100 text-yellow-800",
                       Preparing: "bg-orange-100 text-orange-800",
                       Ready: "bg-green-100 text-green-800",
                       Delivered: "bg-blue-100 text-blue-800",
                       Cancelled: "bg-red-100 text-red-800",
                     };
+                    const statusLabel = String(order.status || "")
+                      .replace(/_/g, " ")
+                      .toLowerCase()
+                      .replace(/\b\w/g, (char) => char.toUpperCase());
 
                     return (
                       <div
@@ -623,7 +645,7 @@ export default function CustomerDashboard() {
                                 "bg-gray-100 text-gray-800"
                               }`}
                             >
-                              {order.status}
+                              {statusLabel}
                             </span>
                           </div>
                           <div className="flex items-center gap-4 text-sm text-[#6b6b6b]">

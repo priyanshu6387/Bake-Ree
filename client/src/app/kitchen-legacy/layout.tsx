@@ -11,6 +11,7 @@ export default function KitchenLayout({
 }) {
   const router = useRouter();
   const pathname = usePathname();
+  const redirectPath = pathname ?? "/";
   const [checking, setChecking] = useState(true);
   const isDev = process.env.NODE_ENV !== "production";
 
@@ -24,7 +25,7 @@ export default function KitchenLayout({
       const token = localStorage.getItem("token");
 
       if (!token) {
-        router.push("/login?redirect=" + encodeURIComponent(pathname));
+        router.push("/login?redirect=" + encodeURIComponent(redirectPath));
         return;
       }
 
@@ -48,12 +49,12 @@ export default function KitchenLayout({
               return;
             }
           } else {
-            router.push("/login?redirect=" + encodeURIComponent(pathname));
+            router.push("/login?redirect=" + encodeURIComponent(redirectPath));
             return;
           }
         } catch (error) {
           console.error("Error checking kitchen access:", error);
-          router.push("/login?redirect=" + encodeURIComponent(pathname));
+          router.push("/login?redirect=" + encodeURIComponent(redirectPath));
           return;
         }
       }
@@ -62,7 +63,7 @@ export default function KitchenLayout({
     };
 
     checkAccess();
-  }, [router, pathname, isDev]);
+  }, [router, redirectPath, isDev]);
 
   if (checking) {
     return (

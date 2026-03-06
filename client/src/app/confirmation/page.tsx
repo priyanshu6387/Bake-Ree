@@ -4,26 +4,26 @@ import Link from "next/link";
 import { useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { FaCheckCircle } from "react-icons/fa";
-import { useCartStore } from "../../store/cartStore"; // adjust path as needed
 
 export default function ConfirmationPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
-  const orderType = searchParams.get("orderType");
-  const name = searchParams.get("name");
-  const email = searchParams.get("email");
-  const phone = searchParams.get("phone");
-  const { clearCart } = useCartStore();
+  const orderId = searchParams?.get("orderId") ?? null;
+  const orderType = searchParams?.get("orderType") ?? null;
+  const status = searchParams?.get("status") ?? null;
+  const name = searchParams?.get("name") ?? null;
+  const email = searchParams?.get("email") ?? null;
+  const phone = searchParams?.get("phone") ?? null;
+  const coupon = searchParams?.get("coupon") ?? null;
 
   useEffect(() => {
-    if (!orderType || !name || !email || !phone) {
+    if (!orderId || !orderType || !name || !email || !phone) {
       router.replace("/");
     } else {
-      clearCart();
       window.scrollTo(0, 0);
     }
-  }, [orderType, name, email, phone, router, clearCart]);
+  }, [orderId, orderType, name, email, phone, router]);
 
   return (
     <section className="min-h-screen bg-gradient-to-b from-[#f7f5f0] via-[#f3f2ec] to-[#efeee9] px-4 pt-32 pb-16 flex items-center justify-center">
@@ -42,6 +42,24 @@ export default function ConfirmationPage() {
           Your order has been successfully placed. We are preparing it with care
           and love.
         </p>
+
+        {orderId && (
+          <p className="text-sm text-[#2a2927]">
+            Order ID: <span className="font-semibold">#{orderId.slice(-8).toUpperCase()}</span>
+          </p>
+        )}
+
+        {coupon && (
+          <p className="text-sm text-[#2a2927]">
+            Coupon Applied: <span className="font-semibold">{coupon}</span>
+          </p>
+        )}
+
+        {status === "APPROVAL_PENDING" && (
+          <div className="bg-[#fff3cd] text-[#7a5a00] text-sm p-4 rounded-2xl border border-[#f1da9f]">
+            Waiting for operations approval before kitchen preparation starts.
+          </div>
+        )}
 
         {orderType === "delivery" && (
           <div className="bg-[#f6f1e8] text-[#6a4b2a] text-sm p-4 rounded-2xl border border-[#eadfcd]">
@@ -70,6 +88,14 @@ export default function ConfirmationPage() {
           >
             Order More
           </Link>
+          {orderId && (
+            <Link
+              href={`/orders/${orderId}`}
+              className="px-6 py-3 rounded-full border border-[#1f7a6b] text-[#1f7a6b] hover:bg-[#1f7a6b] hover:text-white transition"
+            >
+              View Order
+            </Link>
+          )}
         </div>
       </div>
     </section>

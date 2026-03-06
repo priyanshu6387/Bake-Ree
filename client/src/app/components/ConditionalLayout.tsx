@@ -113,7 +113,7 @@ export default function ConditionalLayout({
               }
             }, 100);
           }
-        } catch (e) {
+        } catch {
           // Handle relative URLs
           const href = link.getAttribute("href");
           if (href && href.startsWith("#")) {

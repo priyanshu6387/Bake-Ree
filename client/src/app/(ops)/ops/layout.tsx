@@ -1,8 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
-import clsx from "clsx";
 import OpsSidebar from "@/components/ops/OpsSidebar";
 import OpsSubSidebar, { getActiveModuleId } from "@/components/ops/OpsSubSidebar";
 import OpsHeader from "@/components/ops/OpsHeader";
@@ -24,6 +23,8 @@ export default function OpsLayout({
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isSubnavOpen, setIsSubnavOpen] = useState(false);
+  // Keep route transitions predictable when main content is the only scroll container.
+  const mainScrollRef = useRef<HTMLElement | null>(null);
   useRoleNotifications("admin");
 
   const activeModuleId = useMemo(() => getActiveModuleId(pathname), [pathname]);
@@ -54,17 +55,21 @@ export default function OpsLayout({
     }
   }, [isSubnavOpen]);
 
+  useEffect(() => {
+    mainScrollRef.current?.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  }, [pathname]);
+
   return (
-    <div className="min-h-screen w-full overflow-x-hidden bg-[#f6efe6]">
+    <div className="h-screen w-full overflow-hidden bg-[#f6efe6]">
       <div
-        className="min-h-screen w-full lg:grid"
+        className="flex h-full w-full flex-col lg:grid"
         style={{
           gridTemplateColumns: showSubnavColumn
             ? `${sidebarWidth} 240px 1fr`
             : `${sidebarWidth} 1fr`,
         }}
       >
-        <aside className="relative z-30 lg:sticky lg:top-0 lg:h-screen lg:overflow-y-auto lg:border-r lg:border-black/5 lg:bg-white">
+        <aside className="relative z-30 lg:h-full lg:min-h-0 lg:border-r lg:border-black/5 lg:bg-white">
           <OpsSidebar
             isOpen={isSidebarOpen}
             isCollapsed={isSidebarCollapsed}
@@ -79,12 +84,15 @@ export default function OpsLayout({
         </aside>
 
         {showSubnavColumn && (
-          <aside className="relative z-20 lg:sticky lg:top-0 lg:h-screen lg:overflow-y-auto lg:border-r lg:border-black/5 lg:bg-white/70 lg:backdrop-blur">
+          <aside className="relative z-20 lg:h-full lg:min-h-0 lg:border-r lg:border-black/5 lg:bg-white/70 lg:backdrop-blur">
             <OpsSubSidebar isOpen={isSubnavOpen} onClose={() => setIsSubnavOpen(false)} />
           </aside>
         )}
 
-        <main className="min-w-0 overflow-x-hidden">
+        <main
+          ref={mainScrollRef}
+          className="min-h-0 min-w-0 flex-1 overflow-x-auto overflow-y-auto"
+        >
           <div className="mx-auto w-full max-w-[1400px] px-4 py-4 lg:px-6 lg:py-6">
             <OpsHeader
               title={headerTitle}

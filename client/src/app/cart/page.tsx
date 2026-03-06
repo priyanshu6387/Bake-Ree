@@ -2,46 +2,123 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useCartStore } from "../../store/cartStore";
 import { HiOutlineTrash } from "react-icons/hi";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
+import CouponsAPI from "@/services/coupons";
+import axios from "axios";
+
+const formatCouponError = (error: unknown) => {
+  if (axios.isAxiosError(error)) {
+    return (
+      error.response?.data?.error ||
+      error.response?.data?.message ||
+      "Failed to process coupon"
+    );
+  }
+  return "Failed to process coupon";
+};
 
 export default function CartPage() {
   const router = useRouter();
-  const { cart, updateQuantity, removeFromCart } = useCartStore();
+  const {
+    cart,
+    updateQuantity,
+    removeFromCart,
+    appliedCoupon,
+    setAppliedCoupon,
+    clearAppliedCoupon,
+  } = useCartStore();
 
-  const [promoCode, setPromoCode] = useState("");
-  const [appliedDiscount, setAppliedDiscount] = useState(0);
-  const [couponApplied, setCouponApplied] = useState(false);
+  const [promoCodeInput, setPromoCodeInput] = useState(appliedCoupon?.code || "");
+  const [applyingCoupon, setApplyingCoupon] = useState(false);
 
-  const subtotal = cart.reduce(
-    (sum, item) => sum + item.price * item.quantity,
-    0
-  );
+  const appliedCouponCode = appliedCoupon?.code || "";
+  const couponApplied = Boolean(appliedCouponCode);
+
+  const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const tax = +(subtotal * 0.05).toFixed(2);
-  const discount =
-    appliedDiscount > 0 ? +(subtotal * appliedDiscount).toFixed(2) : 0;
+
+  const discount = useMemo(() => {
+    if (!appliedCoupon) return 0;
+
+    if (appliedCoupon.discountType === "PERCENT") {
+      let computed = subtotal * (appliedCoupon.discountValue / 100);
+      if (appliedCoupon.maxDiscountAmount !== null) {
+        computed = Math.min(computed, appliedCoupon.maxDiscountAmount);
+      }
+      return +computed.toFixed(2);
+    }
+
+    if (appliedCoupon.discountType === "FLAT") {
+      return +Math.min(subtotal, appliedCoupon.discountValue).toFixed(2);
+    }
+
+    return +Math.min(subtotal, appliedCoupon.discountAmount || 0).toFixed(2);
+  }, [appliedCoupon, subtotal]);
+
   const total = subtotal + tax - discount;
 
-  const applyOrRemoveCoupon = () => {
-    if (couponApplied) {
-      // Remove coupon
-      setAppliedDiscount(0);
-      setPromoCode("");
-      setCouponApplied(false);
-      toast.success("Coupon removed");
-    } else {
-      // Apply coupon
-      if (promoCode.toLowerCase() === "welcome10") {
-        setAppliedDiscount(0.1);
-        setCouponApplied(true);
-        toast.success("Coupon applied");
-      } else {
-        toast.error("Invalid promo code");
+  const applyCoupon = async () => {
+    if (!promoCodeInput.trim()) {
+      toast.error("Enter a coupon code");
+      return;
+    }
+    if (cart.length === 0) {
+      toast.error("Add items before applying coupon");
+      return;
+    }
+
+    try {
+      setApplyingCoupon(true);
+      const response = await CouponsAPI.validate({
+        code: promoCodeInput.trim(),
+        subtotal,
+        orderType: "Pickup",
+        deliveryCharge: 0,
+      });
+
+      setAppliedCoupon({
+        code: response.coupon.code,
+        couponId: response.coupon._id,
+        discountType: response.pricing.discountType,
+        discountValue: response.pricing.discountValue,
+        maxDiscountAmount: response.pricing.maxDiscountAmount,
+        discountAmount: response.pricing.discountAmount,
+        reservationToken: null,
+        reservationExpiresAt: null,
+      });
+
+      setPromoCodeInput(response.coupon.code);
+      toast.success("Coupon applied");
+    } catch (error: unknown) {
+      toast.error(formatCouponError(error));
+    } finally {
+      setApplyingCoupon(false);
+    }
+  };
+
+  const removeCoupon = async () => {
+    if (appliedCoupon?.reservationToken) {
+      try {
+        await CouponsAPI.release(appliedCoupon.reservationToken);
+      } catch {
+        // Best effort release.
       }
     }
+    clearAppliedCoupon();
+    setPromoCodeInput("");
+    toast.success("Coupon removed");
+  };
+
+  const applyOrRemoveCoupon = async () => {
+    if (couponApplied) {
+      await removeCoupon();
+      return;
+    }
+    await applyCoupon();
   };
 
   const handleProceedToCheckout = () => {
@@ -50,21 +127,60 @@ export default function CartPage() {
       tax: tax.toFixed(2),
       discount: discount.toFixed(2),
       total: total.toFixed(2),
-      coupon: couponApplied ? promoCode : "",
+      coupon: couponApplied ? appliedCoupon?.code || "" : "",
     });
     router.push(`/payment?${params.toString()}`);
   };
 
+  useEffect(() => {
+    setPromoCodeInput(appliedCouponCode);
+  }, [appliedCouponCode]);
+
+  useEffect(() => {
+    if (!appliedCouponCode || cart.length === 0) return;
+
+    let active = true;
+    const revalidate = async () => {
+      try {
+        const response = await CouponsAPI.validate({
+          code: appliedCouponCode,
+          subtotal,
+          orderType: "Pickup",
+          deliveryCharge: 0,
+        });
+
+        if (!active) return;
+        setAppliedCoupon({
+          code: response.coupon.code,
+          couponId: response.coupon._id,
+          discountType: response.pricing.discountType,
+          discountValue: response.pricing.discountValue,
+          maxDiscountAmount: response.pricing.maxDiscountAmount,
+          discountAmount: response.pricing.discountAmount,
+          reservationToken: null,
+          reservationExpiresAt: null,
+        });
+      } catch {
+        if (!active) return;
+        clearAppliedCoupon();
+        setPromoCodeInput("");
+        toast.error("Applied coupon became invalid and was removed");
+      }
+    };
+
+    revalidate();
+    return () => {
+      active = false;
+    };
+  }, [appliedCouponCode, cart.length, subtotal, clearAppliedCoupon, setAppliedCoupon]);
+
   return (
     <section className="min-h-screen bg-gradient-to-b from-[#f7f5f0] via-[#f3f2ec] to-[#efeee9] px-4 pt-36 pb-20">
       <div className="max-w-6xl mx-auto flex flex-col lg:flex-row gap-10">
-        {/* Cart Items */}
         <div className="flex-1">
           <div className="flex items-end justify-between mb-6">
             <div>
-              <h2 className="text-2xl font-semibold text-[#1f1d1a]">
-                Cart Items
-              </h2>
+              <h2 className="text-2xl font-semibold text-[#1f1d1a]">Cart Items</h2>
               <p className="text-sm text-[#6d665c]">
                 {cart.length} item{cart.length !== 1 ? "s" : ""} in your bag
               </p>
@@ -72,9 +188,7 @@ export default function CartPage() {
           </div>
           {cart.length === 0 ? (
             <div className="bg-white/80 border border-black/5 rounded-3xl p-10 text-center shadow-sm">
-              <p className="text-[#2a2927] text-lg font-medium">
-                Your cart is empty.
-              </p>
+              <p className="text-[#2a2927] text-lg font-medium">Your cart is empty.</p>
               <p className="text-sm text-[#6d665c] mt-2">
                 Explore fresh bakes and add your favorites.
               </p>
@@ -103,9 +217,7 @@ export default function CartPage() {
                       <h3 className="font-semibold text-[#1f1d1a] text-base truncate max-w-[220px]">
                         {item.name}
                       </h3>
-                      <p className="text-sm text-[#6a4b2a] font-medium">
-                        ₹{item.price}
-                      </p>
+                      <p className="text-sm text-[#6a4b2a] font-medium">₹{item.price}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2 sm:ml-4">
@@ -144,12 +256,9 @@ export default function CartPage() {
           )}
         </div>
 
-        {/* Summary */}
         <div className="w-full lg:w-[360px] space-y-6">
           <div className="bg-white border border-black/5 rounded-3xl p-6 shadow-[0_10px_28px_rgba(20,15,10,0.06)] space-y-4 lg:mt-12">
-            <h3 className="text-xl font-semibold text-[#1f1d1a] mb-2">
-              Order Summary
-            </h3>
+            <h3 className="text-xl font-semibold text-[#1f1d1a] mb-2">Order Summary</h3>
             <div className="flex justify-between text-sm text-[#2a2927]">
               <span>Subtotal:</span>
               <span>₹{subtotal.toFixed(2)}</span>
@@ -158,9 +267,14 @@ export default function CartPage() {
               <span>Tax (5%):</span>
               <span>₹{tax.toFixed(2)}</span>
             </div>
-            {appliedDiscount > 0 && (
+            {couponApplied && (
               <div className="flex justify-between text-sm text-green-700">
-                <span>Discount (10%):</span>
+                <span>
+                  Discount
+                  {appliedCoupon?.discountType === "PERCENT"
+                    ? ` (${appliedCoupon.discountValue.toFixed(0)}%)`
+                    : ""}:
+                </span>
                 <span>-₹{discount.toFixed(2)}</span>
               </div>
             )}
@@ -170,29 +284,29 @@ export default function CartPage() {
               <span>₹{total.toFixed(2)}</span>
             </div>
 
-            {/* Promo Input */}
             <div className="flex gap-2 mt-4">
               <input
                 type="text"
-                value={promoCode}
-                onChange={(e) => setPromoCode(e.target.value)}
+                value={couponApplied ? appliedCoupon?.code || "" : promoCodeInput}
+                onChange={(e) => setPromoCodeInput(e.target.value)}
                 placeholder="Promo code"
                 className="flex-1 px-4 py-2.5 border border-black/10 rounded-full text-sm text-[#2a2927] bg-[#f8f7f4] focus:outline-none focus:ring-2 focus:ring-[#2a2927]/15"
-                disabled={couponApplied}
+                disabled={couponApplied || applyingCoupon}
               />
               <button
                 onClick={applyOrRemoveCoupon}
+                disabled={applyingCoupon}
                 className={`${
                   couponApplied
                     ? "bg-green-700 hover:bg-green-800"
                     : "bg-[#2a2927] hover:bg-[#1f1d1a]"
-                } text-white px-4 py-2.5 rounded-full text-sm transition`}
+                } text-white px-4 py-2.5 rounded-full text-sm transition disabled:opacity-60`}
               >
-                {couponApplied ? "Remove Coupon" : "Apply"}
+                {couponApplied ? "Remove Coupon" : applyingCoupon ? "Applying..." : "Apply"}
               </button>
             </div>
             <p className="text-xs text-[#6d665c] pt-1">
-              Try "WELCOME10" for 10% off
+              Use your coupon code from offers, campaigns, or admin promotions.
             </p>
           </div>
 

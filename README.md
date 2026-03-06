@@ -21,6 +21,7 @@ This README defines the **target skeleton** and **industry-level information arc
 - [Product Scope](#-product-scope)
 - [Navigation Map (Sidebar + Sub-sidebar)](#-navigation-map-sidebar--sub-sidebar)
 - [Core Process Flows (Diagrams)](#-core-process-flows-diagrams)
+- [Coupon & Promo Architecture](#-coupon--promo-architecture)
 - [ERP Modules](#-erp-modules)
 - [ERP Step-by-Step (Detailed)](#-erp-step-by-step-detailed)
 - [CRM Modules](#-crm-modules)
@@ -213,6 +214,15 @@ flowchart TD
   D --> E[Delivery]
   E --> F[Invoice + Revenue]
 ```
+
+## 🎟 Coupon & Promo Architecture
+
+- Canonical reference: `docs/coupon-promo-architecture.md`
+- Includes:
+  - Admin coupon governance architecture
+  - Customer apply/reserve/consume sequence
+  - Recommendation and targeting flow
+  - Expiry lifecycle state diagram
 
 ---
 
@@ -648,6 +658,13 @@ Bake-Ree/
 1. Cross-module dashboards and KPI views.
 2. Scheduled reports and exports.
 3. Rule engine for loyalty + CRM triggers.
+
+---
+
+## 📘 Order Lifecycle Docs
+
+- Architecture + sequence + full flow diagrams: `docs/order-lifecycle-architecture.md`
+- API contracts + transition table: `docs/order-lifecycle-api.md`
 
 ---
 

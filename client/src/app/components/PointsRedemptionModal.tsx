@@ -48,7 +48,7 @@ export default function PointsRedemptionModal({
         return;
       }
 
-      const response = await axios.post(
+      await axios.post(
         "http://localhost:5000/api/loyalty-points/redeem",
         {
           points: points,
@@ -72,11 +72,12 @@ export default function PointsRedemptionModal({
       setDescription("");
       onRedeemSuccess();
       onClose();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error redeeming points:", error);
-      toast.error(
-        error.response?.data?.error || "Failed to redeem points. Please try again."
-      );
+      const message = axios.isAxiosError(error)
+        ? error.response?.data?.error
+        : null;
+      toast.error(message || "Failed to redeem points. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -200,7 +201,7 @@ export default function PointsRedemptionModal({
         {points > currentBalance && (
           <div className="mb-4 rounded-2xl border border-[#f2b9b9] bg-[#ffecec] p-3">
             <p className="text-sm text-[#c04b4b]">
-              You don't have enough points. Available: {currentBalance.toLocaleString()}
+              You do not have enough points. Available: {currentBalance.toLocaleString()}
             </p>
           </div>
         )}

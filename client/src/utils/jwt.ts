@@ -4,6 +4,7 @@ type JwtPayload = {
   userId?: string;
   role?: string;
   isAdmin?: boolean;
+  accessRoleKey?: string | null;
 };
 
 export const decodeTokenPayload = (token: string): JwtPayload | null => {

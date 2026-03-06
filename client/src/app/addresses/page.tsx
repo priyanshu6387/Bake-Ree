@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type ComponentType } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
 import toast from "react-hot-toast";
@@ -31,7 +31,7 @@ interface Address {
   createdAt: string;
 }
 
-const labelIcons: Record<string, any> = {
+const labelIcons: Record<string, ComponentType<{ className?: string }>> = {
   Home: HiHome,
   Work: HiOfficeBuilding,
   Office: HiOfficeBuilding,
@@ -46,11 +46,7 @@ export default function AddressesPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<Address | null>(null);
 
-  useEffect(() => {
-    fetchAddresses();
-  }, []);
-
-  const fetchAddresses = async () => {
+  const fetchAddresses = useCallback(async () => {
     try {
       const token = localStorage.getItem("token");
       if (!token) {
@@ -68,9 +64,9 @@ export default function AddressesPage() {
       );
 
       setAddresses(response.data);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error fetching addresses:", error);
-      if (error.response?.status === 401) {
+      if (axios.isAxiosError(error) && error.response?.status === 401) {
         router.push("/login");
       } else {
         toast.error("Failed to load addresses");
@@ -78,7 +74,11 @@ export default function AddressesPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [router]);
+
+  useEffect(() => {
+    fetchAddresses();
+  }, [fetchAddresses]);
 
   const handleAdd = () => {
     setEditingAddress(null);
@@ -114,11 +114,12 @@ export default function AddressesPage() {
 
       setAddresses((prev) => prev.filter((addr) => addr._id !== addressId));
       toast.success("Address deleted successfully");
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error deleting address:", error);
-      toast.error(
-        error.response?.data?.error || "Failed to delete address"
-      );
+      const message = axios.isAxiosError(error)
+        ? error.response?.data?.error
+        : null;
+      toast.error(message || "Failed to delete address");
     } finally {
       setDeletingId(null);
       setPendingDelete(null);
@@ -134,7 +135,7 @@ export default function AddressesPage() {
   const handleSetDefault = async (addressId: string) => {
     try {
       const token = localStorage.getItem("token");
-      const response = await axios.patch(
+      await axios.patch(
         `http://localhost:5000/api/addresses/${addressId}/set-default`,
         {},
         {
@@ -151,7 +152,7 @@ export default function AddressesPage() {
         }))
       );
       toast.success("Default address updated");
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error setting default address:", error);
       toast.error("Failed to set default address");
     }
@@ -324,7 +325,7 @@ export default function AddressesPage() {
                 Delete this address?
               </h3>
               <p className="mt-2 text-sm text-[#7a746d]">
-                This will remove "{pendingDelete.label}" and cannot be undone.
+                This will remove &quot;{pendingDelete.label}&quot; and cannot be undone.
               </p>
               <div className="mt-6 flex flex-wrap gap-3">
                 <button

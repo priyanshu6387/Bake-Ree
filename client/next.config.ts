@@ -1,6 +1,8 @@
 import type { NextConfig } from "next";
+import path from "node:path";
 
 const nextConfig: NextConfig = {
+  outputFileTracingRoot: path.join(process.cwd(), ".."),
   images: {
     domains: ["picsum.photos", "images.unsplash.com", "res.cloudinary.com"],
     // Or use `remotePatterns` if you need finer control:

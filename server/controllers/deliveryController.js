@@ -7,7 +7,41 @@ import User from "../models/User.js";
 import {
   emitDeliveryLocationUpdated,
   emitDeliveryStatusUpdated,
+  emitOrderStatusUpdated,
 } from "../services/socketService.js";
+import { ORDER_STATUSES } from "../services/orderLifecycleService.js";
+import { sendOrderStatusUpdate } from "../services/emailService.js";
+
+const mapDeliveryStatusToOrderStatus = (deliveryStatus) => {
+  switch (deliveryStatus) {
+    case "Assigned":
+      return ORDER_STATUSES.DISPATCH_ASSIGNED;
+    case "Picked Up":
+    case "In Transit":
+    case "Out for Delivery":
+      return ORDER_STATUSES.OUT_FOR_DELIVERY;
+    case "Delivered":
+      return ORDER_STATUSES.DELIVERED;
+    case "Cancelled":
+    case "Failed":
+      return ORDER_STATUSES.CANCELLED;
+    default:
+      return null;
+  }
+};
+
+const CUSTOMER_STATUS_EMAIL_STATUSES = new Set([
+  ORDER_STATUSES.DELIVERED,
+  ORDER_STATUSES.CANCELLED,
+]);
+
+const queueDeliveryOrderStatusEmail = (order, mappedOrderStatus) => {
+  if (!CUSTOMER_STATUS_EMAIL_STATUSES.has(mappedOrderStatus)) return;
+  if (!order?.user?.email) return;
+  sendOrderStatusUpdate(order, order.user, mappedOrderStatus).catch((err) => {
+    console.error("Failed to send delivery order status update email:", err);
+  });
+};
 
 /**
  * Get all deliveries (Admin only)
@@ -232,11 +266,6 @@ export const updateDeliveryStatus = async (req, res) => {
     // If status is "Delivered", set actual delivery time
     if (status === "Delivered") {
       updateData.actualDeliveryTime = new Date();
-      // Also update order status to "Delivered"
-      const delivery = await Delivery.findById(id);
-      if (delivery) {
-        await Order.findByIdAndUpdate(delivery.order, { status: "Delivered" });
-      }
     }
 
     const delivery = await Delivery.findByIdAndUpdate(id, updateData, {
@@ -254,6 +283,23 @@ export const updateDeliveryStatus = async (req, res) => {
     // Emit socket event for status update
     if (status && oldStatus !== status) {
       emitDeliveryStatusUpdated(delivery, oldStatus);
+
+      const mappedOrderStatus = mapDeliveryStatusToOrderStatus(status);
+      if (mappedOrderStatus && delivery.order?._id) {
+        const oldOrderStatus = delivery.order.status;
+        const updatedOrder = await Order.findByIdAndUpdate(
+          delivery.order._id,
+          { status: mappedOrderStatus },
+          { new: true }
+        )
+          .populate("user", "name email phone")
+          .populate("items.product", "name image price")
+          .populate("assignedKitchenStaff", "name email");
+        if (updatedOrder) {
+          emitOrderStatusUpdated(updatedOrder, oldOrderStatus, req.user);
+          queueDeliveryOrderStatusEmail(updatedOrder, mappedOrderStatus);
+        }
+      }
     }
 
     res.json(delivery);
@@ -307,6 +353,20 @@ export const assignDeliveryStaff = async (req, res) => {
     // Emit socket event for status update
     if (oldStatus !== "Assigned") {
       emitDeliveryStatusUpdated(delivery, oldStatus || "Pending");
+      if (delivery.order?._id) {
+        const oldOrderStatus = delivery.order.status;
+        const updatedOrder = await Order.findByIdAndUpdate(
+          delivery.order._id,
+          { status: ORDER_STATUSES.DISPATCH_ASSIGNED },
+          { new: true }
+        )
+          .populate("user", "name email phone")
+          .populate("items.product", "name image price")
+          .populate("assignedKitchenStaff", "name email");
+        if (updatedOrder) {
+          emitOrderStatusUpdated(updatedOrder, oldOrderStatus, req.user);
+        }
+      }
     }
 
     res.json(delivery);
@@ -461,4 +521,3 @@ function calculateDistance(lat1, lon1, lat2, lon2) {
   const distance = R * c;
   return distance;
 }
-

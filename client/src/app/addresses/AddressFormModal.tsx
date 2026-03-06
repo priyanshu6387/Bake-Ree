@@ -90,11 +90,12 @@ export default function AddressFormModal({ address, onClose, onSave }: Props) {
         address ? "Address updated successfully" : "Address added successfully"
       );
       onSave();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error saving address:", error);
-      toast.error(
-        error.response?.data?.error || "Failed to save address"
-      );
+      const message = axios.isAxiosError(error)
+        ? error.response?.data?.error
+        : null;
+      toast.error(message || "Failed to save address");
     } finally {
       setSaving(false);
     }

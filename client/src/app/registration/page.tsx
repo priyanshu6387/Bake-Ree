@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { FcGoogle } from "react-icons/fc";
 import { FaApple } from "react-icons/fa";
 import { HiEye, HiEyeOff } from "react-icons/hi";
+import axios from "axios";
 import { registerUser } from "@/services/authService";
 import toast from "react-hot-toast";
 
@@ -55,11 +56,11 @@ export default function RegistrationPage() {
       // ✅ Redirect after successful registration
       toast.success("Account created successfully");
       router.push("/dashboard");
-    } catch (error: any) {
-      toast.error(
-        error.response?.data?.error ||
-          "Registration failed. Please try again."
-      );
+    } catch (error: unknown) {
+      const message = axios.isAxiosError(error)
+        ? error.response?.data?.error
+        : null;
+      toast.error(message || "Registration failed. Please try again.");
       console.error("Registration error:", error);
     } finally {
       setLoading(false);

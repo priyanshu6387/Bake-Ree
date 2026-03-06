@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
 import Image from "next/image";
@@ -30,11 +30,7 @@ export default function WishlistPage() {
   const [removing, setRemoving] = useState<string | null>(null);
   const { addToCart } = useCartStore();
 
-  useEffect(() => {
-    fetchWishlist();
-  }, []);
-
-  const fetchWishlist = async () => {
+  const fetchWishlist = useCallback(async () => {
     try {
       const token = localStorage.getItem("token");
       if (!token) {
@@ -52,9 +48,9 @@ export default function WishlistPage() {
       );
 
       setWishlist(response.data);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error fetching wishlist:", error);
-      if (error.response?.status === 401) {
+      if (axios.isAxiosError(error) && error.response?.status === 401) {
         router.push("/login");
       } else {
         toast.error("Failed to load wishlist");
@@ -62,7 +58,11 @@ export default function WishlistPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [router]);
+
+  useEffect(() => {
+    fetchWishlist();
+  }, [fetchWishlist]);
 
   const handleRemove = async (productId: string) => {
     setRemoving(productId);
@@ -79,7 +79,7 @@ export default function WishlistPage() {
 
       setWishlist((prev) => prev.filter((item) => item.product._id !== productId));
       toast.success("Removed from wishlist");
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error removing from wishlist:", error);
       toast.error("Failed to remove from wishlist");
     } finally {
@@ -91,6 +91,7 @@ export default function WishlistPage() {
     const pid = hashIdToNumber(product._id);
     addToCart({
       id: pid,
+      productId: product._id,
       name: product.name,
       image: product.image || "/placeholder.jpg",
       price: product.price,

@@ -51,7 +51,7 @@ export default function About() {
             Bake Ree began as a humble home kitchen tucked in a quiet
             neighborhood. The smell of warm, buttery croissants and freshly
             baked sourdough would drift from the windows and tempt every
-            passerby. It wasn't a business then — just a passion project born
+            passerby. It was not a business then — just a passion project born
             from memories of Sunday mornings spent baking with family, and
             recipes scribbled in the margins of old cookbooks.
           </p>
@@ -71,13 +71,13 @@ export default function About() {
           </p>
           <p>
             Every bite tells a story — of traditions honored, of innovation
-            welcomed, and of smiles shared across generations. Whether it’s the
+            welcomed, and of smiles shared across generations. Whether it is the
             richness of our cheesecake, the tang of our lemon tart, or the flake
-            of our chocolate croissant, you’ll taste the commitment in every
+            of our chocolate croissant, you will taste the commitment in every
             layer.
           </p>
           <p>
-            Today, Bake Ree is more than just a bakery. It’s a space where
+            Today, Bake Ree is more than just a bakery. It is a space where
             flavor and feeling come together. We believe that good food connects
             us, and we’re honored to be part of your celebrations, comfort, and
             everyday joys.
