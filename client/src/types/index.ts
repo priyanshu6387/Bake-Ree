@@ -15,3 +15,4 @@ export interface Product {
 
 export * from "./inventory";
 export * from "./procurement";
+export * from "./crm";

@@ -51,6 +51,20 @@ const customerProfileSchema = new mongoose.Schema(
       enum: ["Delivery", "Pickup", null],
       default: null,
     },
+    crmFavoriteProduct: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    crmStatusOverride: {
+      type: String,
+      enum: ["active", "inactive", "vip", null],
+      default: null,
+    },
+    crmNeedsFollowUp: {
+      type: Boolean,
+      default: null,
+    },
     // Membership Tier (for future loyalty system)
     membershipTier: {
       type: String,

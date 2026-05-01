@@ -22,7 +22,7 @@ const httpServer = createServer(app);
 initializeSocket(httpServer);
 
 // Middleware
-app.use(cors({ origin: "http://localhost:3000" })); // ✅ allow frontend access
+app.use(cors({ origin: process.env.CORS_ORIGIN || "http://localhost:3000" })); // ✅ allow frontend access
 app.use(express.json()); // ✅ parse JSON body
 
 // Route Imports
@@ -57,6 +57,7 @@ import procurementRoutes from "./routes/procurement.js";
 import opsSettingsRoutes from "./routes/opsSettings.js";
 import kitchenRoutes from "./routes/kitchen.js";
 import couponRoutes from "./routes/coupons.js";
+import crmRoutes from "./routes/crmRoutes.js";
 
 // Route Mounts
 app.use("/api/products", productRoutes);
@@ -91,6 +92,7 @@ app.use("/api/procurement", procurementRoutes);
 app.use("/api/ops/settings", opsSettingsRoutes);
 app.use("/api/kitchen", kitchenRoutes);
 app.use("/api/coupons", couponRoutes);
+app.use("/api/crm", crmRoutes);
 
 // Test Route
 app.get("/", (req, res) => {

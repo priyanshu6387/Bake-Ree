@@ -165,6 +165,7 @@ export default function OpsSidebar({
                   isCollapsed ? (event) => showTooltip(item.label, event.currentTarget) : undefined
                 }
                 onBlur={isCollapsed ? hideTooltip : undefined}
+                onClick={onClose}
               >
                 <span
                   className={clsx(

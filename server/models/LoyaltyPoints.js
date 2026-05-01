@@ -30,6 +30,16 @@ const loyaltyPointsSchema = new mongoose.Schema(
     description: {
       type: String,
     },
+    createdBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+    createdByName: {
+      type: String,
+      trim: true,
+      default: "",
+    },
     expiresAt: {
       type: Date,
       // Points expire after 1 year

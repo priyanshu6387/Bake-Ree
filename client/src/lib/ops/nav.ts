@@ -435,7 +435,7 @@ export const SUB_NAV_BY_MODULE: Record<ModuleId, OpsSubNavModule> = {
           {
             label: "3-Way Match",
             href: "/ops/procurement/three-way-match",
-            description: "PO–GRN–Invoice matching.",
+            description: "POÃ¢â‚¬â€œGRNÃ¢â‚¬â€œInvoice matching.",
           },
           {
             label: "Vendor Bills / AP",
@@ -593,337 +593,36 @@ export const SUB_NAV_BY_MODULE: Record<ModuleId, OpsSubNavModule> = {
   },
   crm: {
     title: "CRM",
-    groups: [
+    items: [
       {
-        key: "customer-360",
-        label: "Customer 360",
-        items: [
-          {
-            label: "Customer List",
-            href: "/ops/crm/customer360/list",
-            description: "Overview table, filters, and quick CRM metrics.",
-          },
-          {
-            label: "Customer Profile (360)",
-            href: "/ops/crm/customer360/[customerId]/profile",
-            description: "Unified profile, KPIs, and lifecycle snapshot.",
-          },
-          {
-            label: "Timeline",
-            href: "/ops/crm/customer360/[customerId]/timeline",
-            description: "Orders, rewards, and support timeline.",
-          },
-          {
-            label: "Wallet & Outstanding",
-            href: "/ops/crm/customer360/[customerId]/wallet",
-            description: "Credits, dues, refunds, and aging.",
-          },
-          {
-            label: "Preferences & Allergens",
-            href: "/ops/crm/customer360/[customerId]/preferences",
-            description: "Dietary preferences, allergens, and delivery slots.",
-          },
-          {
-            label: "Wishlist & Favorites",
-            href: "/ops/crm/customer360/[customerId]/wishlist",
-            description: "Wishlist intelligence and favorites.",
-          },
-          {
-            label: "Addresses & Area Insights",
-            href: "/ops/crm/customer360/[customerId]/addresses",
-            description: "Saved addresses and area performance.",
-          },
-          {
-            label: "Notes, Tasks & Follow-ups",
-            href: "/ops/crm/customer360/[customerId]/notes",
-            description: "Staff notes, tasks, and follow-ups.",
-          },
-          {
-            label: "Communication History",
-            href: "/ops/crm/customer360/[customerId]/communication",
-            description: "Email, SMS, WhatsApp activity log.",
-          },
-          {
-            label: "Recommendations",
-            href: "/ops/crm/customer360/[customerId]/recommendations",
-            description: "Personalized offers and next-best products.",
-          },
-          {
-            label: "Risk & Opportunities",
-            href: "/ops/crm/customer360/[customerId]/risk",
-            description: "Churn risk, upsell, and next best action.",
-          },
-        ],
+        label: "Overview",
+        href: "/ops/crm",
+        description: "CRM overview with key customer and complaint metrics.",
       },
       {
-        key: "analytics",
-        label: "Analytics",
-        items: [
-          {
-            label: "Overview Dashboard",
-            href: "/ops/crm/analytics/overview",
-            description: "KPIs, revenue, retention, and loyalty health.",
-          },
-          {
-            label: "Revenue & AOV",
-            href: "/ops/crm/analytics/revenue-aov",
-            description: "Daily, weekly, and monthly performance.",
-          },
-          {
-            label: "Outstanding & Credits",
-            href: "/ops/crm/analytics/outstanding-credits",
-            description: "Outstanding totals, aging, and credits.",
-          },
-          {
-            label: "Retention & Repeat Rate",
-            href: "/ops/crm/analytics/retention",
-            description: "Repeat behavior and retention curves.",
-          },
-          {
-            label: "Cohorts",
-            href: "/ops/crm/analytics/cohorts",
-            description: "First-order month cohorts and retention.",
-          },
-          {
-            label: "CLV",
-            href: "/ops/crm/analytics/clv",
-            description: "Customer lifetime value trends.",
-          },
-          {
-            label: "Churn & Winback",
-            href: "/ops/crm/analytics/churn",
-            description: "Churn risk, drivers, and winback.",
-          },
-          {
-            label: "Loyalty Performance",
-            href: "/ops/crm/analytics/loyalty-performance",
-            description: "Earn, redeem, and liability insights.",
-          },
-          {
-            label: "Product Affinity",
-            href: "/ops/crm/analytics/product-affinity",
-            description: "Bundles, also-bought, and affinity.",
-          },
-          {
-            label: "Wishlist Intelligence",
-            href: "/ops/crm/analytics/wishlist-intelligence",
-            description: "Wishlist conversion and trends.",
-          },
-          {
-            label: "Item Mood Trends",
-            href: "/ops/crm/analytics/item-mood-trends",
-            description: "Comfort, celebration, healthy trends.",
-          },
-          {
-            label: "Geo / Area Dashboard",
-            href: "/ops/crm/analytics/geo",
-            description: "Area-wise customer performance.",
-          },
-        ],
+        label: "Customers",
+        href: "/ops/crm/customers",
+        description: "Search and manage customer profiles and follow-ups.",
       },
       {
-        key: "segments",
         label: "Segments",
-        items: [
-          {
-            label: "Lifecycle",
-            href: "/ops/crm/segments/lifecycle",
-            description: "New, active, at-risk, churned.",
-          },
-          {
-            label: "RFM",
-            href: "/ops/crm/segments/rfm",
-            description: "Recency, frequency, monetary segments.",
-          },
-          {
-            label: "Tier Distribution",
-            href: "/ops/crm/segments/tier-distribution",
-            description: "Bronze/Silver/Gold/Platinum splits.",
-          },
-          {
-            label: "Saved Segments",
-            href: "/ops/crm/segments/saved",
-            description: "Reusable segments and exports.",
-          },
-          {
-            label: "Geo Segments",
-            href: "/ops/crm/segments/geo",
-            description: "Area and zone based segments.",
-          },
-          {
-            label: "High Outstanding",
-            href: "/ops/crm/segments/high-outstanding",
-            description: "Customers with dues or credits.",
-          },
-          {
-            label: "High CLV",
-            href: "/ops/crm/segments/high-clv",
-            description: "Top lifetime value customers.",
-          },
-          {
-            label: "VIP / Frequent Buyers",
-            href: "/ops/crm/segments/vip",
-            description: "VIP and high frequency buyers.",
-          },
-          {
-            label: "Seasonal Buyers",
-            href: "/ops/crm/segments/seasonal",
-            description: "Festival, holiday, and seasonal spikes.",
-          },
-          {
-            label: "Custom Segment Builder",
-            href: "/ops/crm/segments/builder",
-            description: "Rules-based builder UI.",
-          },
-        ],
+        href: "/ops/crm/segments",
+        description: "Customer segments and targeting groups.",
       },
       {
-        key: "loyalty",
-        label: "Loyalty & Rewards",
-        items: [
-          {
-            label: "Loyalty Dashboard",
-            href: "/ops/crm/loyalty/dashboard",
-            description: "Program health and liability overview.",
-          },
-          {
-            label: "Points Ledger",
-            href: "/ops/crm/loyalty/points-ledger",
-            description: "Earn/redeem/expire ledger.",
-          },
-          {
-            label: "Earn Rules",
-            href: "/ops/crm/loyalty/earn-rules",
-            description: "Multipliers, categories, and minimum spend.",
-          },
-          {
-            label: "Redeem Rules",
-            href: "/ops/crm/loyalty/redeem-rules",
-            description: "Checkout and catalog redemption.",
-          },
-          {
-            label: "Tier Engine",
-            href: "/ops/crm/loyalty/tier-engine",
-            description: "Bronze/Silver/Gold/Platinum logic.",
-          },
-          {
-            label: "Streaks & Milestones",
-            href: "/ops/crm/loyalty/streaks",
-            description: "Weekly streaks and milestone rewards.",
-          },
-          {
-            label: "Rewards Catalog",
-            href: "/ops/crm/loyalty/rewards-catalog",
-            description: "Free items, discounts, and perks.",
-          },
-          {
-            label: "Referrals",
-            href: "/ops/crm/loyalty/referrals",
-            description: "Referral tracking and incentives.",
-          },
-          {
-            label: "Expiry & Liability",
-            href: "/ops/crm/loyalty/expiry-liability",
-            description: "Expiring points and accounting liability.",
-          },
-          {
-            label: "Manual Adjustments",
-            href: "/ops/crm/loyalty/adjustments",
-            description: "Admin adjustments and audit trail.",
-          },
-        ],
+        label: "Complaints",
+        href: "/ops/crm/complaints",
+        description: "Track customer complaints and resolution status.",
       },
       {
-        key: "engagement",
-        label: "Engagement",
-        items: [
-          {
-            label: "Offers / Coupons",
-            href: "/ops/crm/engagement/offers",
-            description: "Offer library, coupons, and governance.",
-          },
-          {
-            label: "Campaigns",
-            href: "/ops/crm/engagement/campaigns",
-            description: "Email, SMS, WhatsApp campaigns.",
-          },
-          {
-            label: "Automation Rules",
-            href: "/ops/crm/engagement/automation",
-            description: "Trigger rules and workflows.",
-          },
-          {
-            label: "A/B Tests",
-            href: "/ops/crm/engagement/ab-tests",
-            description: "Experiment setup and results.",
-          },
-          {
-            label: "Performance",
-            href: "/ops/crm/engagement/performance",
-            description: "Opens, conversions, and lift.",
-          },
-          {
-            label: "Templates",
-            href: "/ops/crm/engagement/templates",
-            description: "Message templates and previews.",
-          },
-          {
-            label: "Preference Center",
-            href: "/ops/crm/engagement/preference-center",
-            description: "Opt-in/out by channel.",
-          },
-        ],
+        label: "Campaigns",
+        href: "/ops/crm/campaigns",
+        description: "Manage outreach campaigns and offers.",
       },
       {
-        key: "ai",
-        label: "AI & Insights",
-        items: [
-          {
-            label: "Recommendations Engine",
-            href: "/ops/crm/ai/recommendations",
-            description: "Rule baseline with AI plug-in.",
-          },
-          {
-            label: "Next Best Action",
-            href: "/ops/crm/ai/next-best-action",
-            description: "Action playbooks and NBA scoring.",
-          },
-          {
-            label: "Churn Prediction",
-            href: "/ops/crm/ai/churn-prediction",
-            description: "Churn scores and top drivers.",
-          },
-          {
-            label: "Purchase Propensity",
-            href: "/ops/crm/ai/purchase-propensity",
-            description: "Category propensity insights.",
-          },
-          {
-            label: "Price Sensitivity",
-            href: "/ops/crm/ai/price-sensitivity",
-            description: "Discount tolerance and elasticity.",
-          },
-          {
-            label: "Product Affinity",
-            href: "/ops/crm/ai/affinity",
-            description: "Bundling suggestions and lifts.",
-          },
-          {
-            label: "Mood & Intent Inference",
-            href: "/ops/crm/ai/mood-intent",
-            description: "Rule-based tagging now, AI later.",
-          },
-          {
-            label: "Personalization Studio",
-            href: "/ops/crm/ai/personalization",
-            description: "Ranking weights and guardrails.",
-          },
-          {
-            label: "Feedback Loop",
-            href: "/ops/crm/ai/feedback",
-            description: "Accept/reject signals for training.",
-          },
-        ],
+        label: "Loyalty",
+        href: "/ops/crm/loyalty",
+        description: "Loyalty program activity, points, and rewards.",
       },
     ],
   },

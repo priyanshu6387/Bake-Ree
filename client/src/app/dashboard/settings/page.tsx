@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import axios from "axios";
+import { AxiosError } from "axios";
 import { HiBell, HiMail, HiDeviceMobile, HiCheck } from "react-icons/hi";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
@@ -63,7 +64,7 @@ export default function NotificationSettingsPage() {
         }
       );
       setPreferences(response.data);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error fetching preferences:", error);
       toast.error("Failed to load notification preferences");
     } finally {
@@ -143,9 +144,13 @@ export default function NotificationSettingsPage() {
       // Update notification store preferences
       const { setPreferences } = useNotificationStore.getState();
       setPreferences(preferences);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error saving preferences:", error);
-      toast.error("Failed to save notification preferences");
+      const errorMessage =
+        error instanceof AxiosError
+          ? (error.response?.data as { error?: string } | undefined)?.error
+          : undefined;
+      toast.error(errorMessage || "Failed to save notification preferences");
     } finally {
       setSaving(false);
     }

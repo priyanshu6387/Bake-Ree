@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import axios from "axios";
 import Link from "next/link";
+import type { IconType } from "react-icons";
 import {
   HiCurrencyRupee,
   HiShoppingBag,
@@ -13,7 +14,7 @@ import {
 } from "react-icons/hi";
 import { TruckIcon } from "@heroicons/react/24/solid";
 import { format } from "timeago.js";
-import toast from "react-hot-toast";
+import { AxiosError } from "axios";
 
 interface OrderItem {
   product: {
@@ -49,7 +50,7 @@ const statusColors: Record<string, string> = {
   Cancelled: "bg-red-100 text-red-800 border-red-300",
 };
 
-const statusIcons: Record<string, any> = {
+const statusIcons: Record<string, IconType> = {
   Pending: HiClock,
   Preparing: HiClock,
   Ready: HiCheckCircle,
@@ -59,7 +60,6 @@ const statusIcons: Record<string, any> = {
 
 export default function OrderDetailPage() {
   const params = useParams();
-  const router = useRouter();
   const orderId = params?.id as string;
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
@@ -89,11 +89,13 @@ export default function OrderDetailPage() {
         }
       );
       setOrder(response.data);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error fetching order:", err);
-      setError(
-        err.response?.data?.message || "Failed to load order details"
-      );
+      const errorMessage =
+        err instanceof AxiosError
+          ? (err.response?.data as { message?: string } | undefined)?.message
+          : undefined;
+      setError(errorMessage || "Failed to load order details");
     } finally {
       setLoading(false);
     }

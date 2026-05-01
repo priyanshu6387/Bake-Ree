@@ -7,6 +7,7 @@ export type CrmSectionShellProps = {
   description: string;
   primaryAction?: { label: string; href: string };
   secondaryAction?: { label: string; href: string };
+  headerActions?: ReactNode;
   children?: ReactNode;
 };
 
@@ -16,6 +17,7 @@ export default function CrmSectionShell({
   description,
   primaryAction,
   secondaryAction,
+  headerActions,
   children,
 }: CrmSectionShellProps) {
   return (
@@ -29,7 +31,7 @@ export default function CrmSectionShell({
             <h2 className="text-2xl font-semibold text-[#2a2927]">{title}</h2>
             <p className="mt-2 max-w-3xl text-sm text-[#5c5a56]">{description}</p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center justify-end gap-2">
             {secondaryAction && (
               <Link
                 href={secondaryAction.href}
@@ -38,6 +40,7 @@ export default function CrmSectionShell({
                 {secondaryAction.label}
               </Link>
             )}
+            {headerActions}
             {primaryAction && (
               <Link
                 href={primaryAction.href}

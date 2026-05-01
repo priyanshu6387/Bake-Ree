@@ -18,8 +18,12 @@ const products: AdminSubnavItem[] = [
 const inventory: AdminSubnavItem[] = [];
 
 const crm: AdminSubnavItem[] = [
-  { label: "Offers & Coupons", href: "/admin/crm/engagement/offers" },
-  { label: "Campaigns", href: "/admin/crm/engagement/campaigns" },
+  { label: "Overview", href: "/admin/crm" },
+  { label: "Customers", href: "/admin/crm/customers" },
+  { label: "Segments", href: "/admin/crm/segments" },
+  { label: "Complaints", href: "/admin/crm/complaints" },
+  { label: "Campaigns", href: "/admin/crm/campaigns" },
+  { label: "Loyalty", href: "/admin/crm/loyalty" },
 ];
 
 const erp: AdminSubnavItem[] = [];

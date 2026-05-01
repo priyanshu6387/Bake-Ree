@@ -12,12 +12,13 @@ const isActive = (pathname: string, href: string) =>
   pathname === href || (href !== "/admin" && pathname.startsWith(href + "/"));
 
 const mapAdminPathToOpsPath = (pathname: string) => {
+  if (pathname === "/admin") return "/ops";
   if (pathname === "/admin/settings") return "/ops/settings";
   if (pathname.startsWith("/admin/settings/roles")) return "/ops/settings/roles";
   if (pathname.startsWith("/admin/settings/locations")) return "/ops/settings/navigation";
   if (pathname.startsWith("/admin/settings/integrations")) return "/ops/settings/integrations";
   if (pathname.startsWith("/admin/settings/audit")) return "/ops/settings/audit";
-  return "/ops";
+  return pathname.replace(/^\/admin/, "/ops");
 };
 
 export default function AdminLayout({

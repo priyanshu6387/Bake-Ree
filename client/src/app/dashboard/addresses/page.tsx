@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import axios from "axios";
+import axios, { AxiosError } from "axios";
 import {
   HiPlus,
   HiPencil,
@@ -11,7 +11,6 @@ import {
   HiHome,
   HiBriefcase,
   HiTag,
-  HiCheck,
 } from "react-icons/hi";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
@@ -79,7 +78,7 @@ export default function DeliveryAddressesPage() {
         }
       );
       setAddresses(response.data);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error fetching addresses:", error);
       toast.error("Failed to load addresses");
     } finally {
@@ -132,9 +131,13 @@ export default function DeliveryAddressesPage() {
       setEditingAddress(null);
       resetForm();
       fetchAddresses();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error saving address:", error);
-      toast.error(error.response?.data?.error || "Failed to save address");
+      const errorMessage =
+        error instanceof AxiosError
+          ? (error.response?.data as { error?: string } | undefined)?.error
+          : undefined;
+      toast.error(errorMessage || "Failed to save address");
     }
   };
 
@@ -166,9 +169,13 @@ export default function DeliveryAddressesPage() {
       });
       toast.success("Address deleted successfully");
       fetchAddresses();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error deleting address:", error);
-      toast.error(error.response?.data?.error || "Failed to delete address");
+      const errorMessage =
+        error instanceof AxiosError
+          ? (error.response?.data as { error?: string } | undefined)?.error
+          : undefined;
+      toast.error(errorMessage || "Failed to delete address");
     }
   };
 
@@ -184,7 +191,7 @@ export default function DeliveryAddressesPage() {
       );
       toast.success("Default address updated");
       fetchAddresses();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error setting default address:", error);
       toast.error("Failed to set default address");
     }

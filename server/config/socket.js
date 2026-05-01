@@ -10,7 +10,7 @@ let io = null;
 export const initializeSocket = (httpServer) => {
   io = new Server(httpServer, {
     cors: {
-      origin: "http://localhost:3000",
+      origin: process.env.CORS_ORIGIN || "http://localhost:3000",
       methods: ["GET", "POST"],
       credentials: true,
     },

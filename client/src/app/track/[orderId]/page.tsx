@@ -7,12 +7,12 @@ import { useSocket } from "@/hooks/useSocket";
 import { getUserIdFromToken } from "@/utils/jwt";
 import toast from "react-hot-toast";
 import {
-  MapPinIcon,
   TruckIcon,
   CheckCircleIcon,
   ClockIcon,
   XMarkIcon,
 } from "@heroicons/react/24/solid";
+import { AxiosError } from "axios";
 
 interface Delivery {
   _id: string;
@@ -52,6 +52,22 @@ interface Delivery {
   };
 }
 
+interface DeliverySocketPayload {
+  deliveryId?: string;
+  delivery?: {
+    order?: {
+      _id?: string;
+    };
+    estimatedTimeRemaining?: number;
+  };
+  location?: {
+    lat: number;
+    lng: number;
+    updatedAt?: string;
+  };
+  newStatus?: string;
+}
+
 // Bakery location (you can make this configurable)
 const BAKERY_LOCATION = {
   lat: 28.5702,
@@ -85,7 +101,6 @@ export default function TrackOrderPage() {
     delivery: null,
     destination: null,
   });
-  const routePolylineRef = useRef<google.maps.Polyline | null>(null);
   const userId = typeof window !== "undefined" ? getUserIdFromToken() : null;
 
   const { socket, isConnected } = useSocket({
@@ -110,36 +125,46 @@ export default function TrackOrderPage() {
   useEffect(() => {
     if (!socket || !isConnected || !orderId) return;
 
-    const handleLocationUpdate = (data: any) => {
+    const handleLocationUpdate = (data: DeliverySocketPayload) => {
       if (data.deliveryId === delivery?._id || data.delivery?.order?._id === orderId) {
         setDelivery((prev) => {
           if (!prev) return prev;
           return {
             ...prev,
-            currentLocation: data.location,
+            currentLocation: data.location
+              ? {
+                  lat: data.location.lat,
+                  lng: data.location.lng,
+                  updatedAt: data.location.updatedAt || new Date().toISOString(),
+                }
+              : prev.currentLocation,
             estimatedTimeRemaining: data.delivery?.estimatedTimeRemaining,
           };
         });
-        updateMapMarkers(data.location);
-        toast.success("Location updated!", { duration: 2000 });
+        if (data.location) {
+          updateMapMarkers({ lat: data.location.lat, lng: data.location.lng });
+          toast.success("Location updated!", { duration: 2000 });
+        }
       }
     };
 
-    const handleStatusUpdate = (data: any) => {
+    const handleStatusUpdate = (data: DeliverySocketPayload) => {
       if (data.delivery?.order?._id === orderId) {
         setDelivery((prev) => {
           if (!prev) return prev;
           return {
             ...prev,
-            status: data.newStatus,
+            status: data.newStatus || prev.status,
             estimatedTimeRemaining: data.delivery?.estimatedTimeRemaining,
           };
         });
-        toast.success(`Status updated: ${data.newStatus}`, { duration: 3000 });
+        if (data.newStatus) {
+          toast.success(`Status updated: ${data.newStatus}`, { duration: 3000 });
+        }
       }
     };
 
-    const handleDeliveryCompleted = (data: any) => {
+    const handleDeliveryCompleted = (data: DeliverySocketPayload) => {
       if (data.delivery?.order?._id === orderId) {
         setDelivery((prev) => {
           if (!prev) return prev;
@@ -186,11 +211,13 @@ export default function TrackOrderPage() {
       );
       setDelivery(response.data);
       setError(null);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error fetching delivery:", err);
-      setError(
-        err.response?.data?.error || "Failed to load delivery information"
-      );
+      const errorMessage =
+        err instanceof AxiosError
+          ? (err.response?.data as { error?: string } | undefined)?.error
+          : undefined;
+      setError(errorMessage || "Failed to load delivery information");
     } finally {
       setLoading(false);
     }
@@ -198,7 +225,7 @@ export default function TrackOrderPage() {
 
   const loadGoogleMaps = (): Promise<void> => {
     return new Promise((resolve, reject) => {
-      if (typeof window !== "undefined" && (window as any).google && (window as any).google.maps) {
+      if (typeof window !== "undefined" && window.google?.maps) {
         resolve();
         return;
       }
@@ -232,7 +259,8 @@ export default function TrackOrderPage() {
       const currentLocation = delivery.currentLocation || BAKERY_LOCATION;
 
       // Create map
-      const map = new (window as any).google.maps.Map(mapElement, {
+      if (!window.google?.maps) return;
+      const map = new window.google.maps.Map(mapElement, {
         zoom: 13,
         center: currentLocation,
         mapTypeControl: false,
@@ -242,10 +270,11 @@ export default function TrackOrderPage() {
 
       mapRef.current = map;
 
-      const google = (window as any).google;
+      const googleApi = window.google;
+      if (!googleApi) return;
       
       // Bakery marker
-      const bakeryMarker = new google.maps.Marker({
+      const bakeryMarker = new googleApi.maps.Marker({
         position: BAKERY_LOCATION,
         map,
         icon: {
@@ -256,7 +285,7 @@ export default function TrackOrderPage() {
       markersRef.current.bakery = bakeryMarker;
 
       // Destination marker
-      const destMarker = new google.maps.Marker({
+      const destMarker = new googleApi.maps.Marker({
         position: destination,
         map,
         icon: {
@@ -268,22 +297,22 @@ export default function TrackOrderPage() {
 
       // Delivery location marker
       if (currentLocation) {
-        const deliveryMarker = new google.maps.Marker({
+        const deliveryMarker = new googleApi.maps.Marker({
           position: currentLocation,
           map,
           icon: {
             url: "http://maps.google.com/mapfiles/ms/icons/truck.png",
-            scaledSize: new google.maps.Size(40, 40),
+            scaledSize: new googleApi.maps.Size(40, 40),
           },
           title: "Delivery Location",
-          animation: google.maps.Animation.DROP,
+          animation: googleApi.maps.Animation.DROP,
         });
         markersRef.current.delivery = deliveryMarker;
 
         // Draw route
         if (delivery.status !== "Delivered") {
-          const directionsService = new google.maps.DirectionsService();
-          const directionsRenderer = new google.maps.DirectionsRenderer({
+          const directionsService = new googleApi.maps.DirectionsService();
+          const directionsRenderer = new googleApi.maps.DirectionsRenderer({
             map,
             suppressMarkers: true,
             polylineOptions: {
@@ -296,9 +325,9 @@ export default function TrackOrderPage() {
             {
               origin: currentLocation,
               destination: destination,
-              travelMode: google.maps.TravelMode.DRIVING,
+              travelMode: googleApi.maps.TravelMode.DRIVING,
             },
-            (result: any, status: any) => {
+            (result: google.maps.DirectionsResult | null, status: google.maps.DirectionsStatus) => {
               if (status === "OK" && result) {
                 directionsRenderer.setDirections(result);
               }
@@ -308,7 +337,7 @@ export default function TrackOrderPage() {
       }
 
       // Fit bounds to show all markers
-      const bounds = new google.maps.LatLngBounds();
+      const bounds = new googleApi.maps.LatLngBounds();
       bounds.extend(BAKERY_LOCATION);
       bounds.extend(destination);
       if (currentLocation) bounds.extend(currentLocation);
@@ -321,8 +350,9 @@ export default function TrackOrderPage() {
   const updateMapMarkers = (location: { lat: number; lng: number }) => {
     if (!mapRef.current || !markersRef.current.delivery) return;
 
-    const google = (window as any).google;
-    const newPosition = new google.maps.LatLng(location.lat, location.lng);
+    if (!window.google?.maps) return;
+    const googleApi = window.google;
+    const newPosition = new googleApi.maps.LatLng(location.lat, location.lng);
     markersRef.current.delivery.setPosition(newPosition);
 
     // Update route
@@ -331,8 +361,8 @@ export default function TrackOrderPage() {
       lng: BAKERY_LOCATION.lng + 0.01,
     };
 
-    const directionsService = new google.maps.DirectionsService();
-    const directionsRenderer = new google.maps.DirectionsRenderer({
+    const directionsService = new googleApi.maps.DirectionsService();
+    const directionsRenderer = new googleApi.maps.DirectionsRenderer({
       map: mapRef.current,
       suppressMarkers: true,
       polylineOptions: {
@@ -345,9 +375,9 @@ export default function TrackOrderPage() {
       {
         origin: location,
         destination: destination,
-        travelMode: google.maps.TravelMode.DRIVING,
+        travelMode: googleApi.maps.TravelMode.DRIVING,
       },
-      (result: any, status: any) => {
+      (result: google.maps.DirectionsResult | null, status: google.maps.DirectionsStatus) => {
         if (status === "OK" && result) {
           directionsRenderer.setDirections(result);
         }

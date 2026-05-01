@@ -1,12 +1,10 @@
-import Customer360Shell from "@/components/crm/Customer360Shell";
-import type { ReactNode } from "react";
+import { redirect } from "next/navigation";
 
-export default function Layout({
-  children,
+export default async function Layout({
   params,
 }: {
-  children: ReactNode;
-  params: { customerId: string };
+  params: Promise<{ customerId: string }>;
 }) {
-  return <Customer360Shell customerId={params.customerId}>{children}</Customer360Shell>;
+  const { customerId } = await params;
+  redirect(`/admin/crm/customers/${customerId}`);
 }
