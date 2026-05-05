@@ -28,6 +28,10 @@ const getMatchScore = (pathname: string, href: string) => {
 };
 
 const resolveHref = (href: string) => href.replace(/\[[^/]+?\]/g, "1");
+const toUserFacingHref = (href: string) =>
+  href.startsWith("/ops/inventory")
+    ? href.replace(/^\/ops\/inventory/, "/admin/inventory")
+    : href;
 
 export const getActiveModuleId = (pathname: string): ModuleId | null => {
   const normalizedPath = pathname.startsWith("/admin")
@@ -136,7 +140,7 @@ export default function OpsSubSidebar({
                   return (
                     <Link
                       key={item.href}
-                      href={resolveHref(item.href)}
+                      href={toUserFacingHref(resolveHref(item.href))}
                       className={clsx(
                         "flex items-center justify-between rounded-lg px-3 py-2 text-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1f7a6b]/40",
                         active

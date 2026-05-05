@@ -52,7 +52,7 @@ import hrPayslipsRoutes from "./routes/hrPayslips.js";
 import hrPerformanceRoutes from "./routes/hrPerformance.js";
 import hrApprovalsRoutes from "./routes/hrApprovals.js";
 import hrDocumentsRoutes from "./routes/hrDocuments.js";
-import inventoryRoutes from "./routes/inventory.js";
+import inventoryRoutes from "./routes/inventoryRoutes.js";
 import procurementRoutes from "./routes/procurement.js";
 import opsSettingsRoutes from "./routes/opsSettings.js";
 import kitchenRoutes from "./routes/kitchen.js";

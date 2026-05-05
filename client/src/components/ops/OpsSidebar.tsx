@@ -10,6 +10,8 @@ import { createPortal } from "react-dom";
 
 const normalizeOpsPath = (pathname: string) =>
   pathname.startsWith("/admin") ? pathname.replace(/^\/admin/, "/ops") : pathname;
+const toUserFacingHref = (href: string) =>
+  href.startsWith("/ops/inventory") ? href.replace(/^\/ops\/inventory/, "/admin/inventory") : href;
 
 const getMatchScore = (pathname: string, href: string) => {
   const normalized = normalizeOpsPath(pathname);
@@ -145,7 +147,7 @@ export default function OpsSidebar({
             return (
               <Link
                 key={item.key}
-                href={item.href}
+                href={toUserFacingHref(item.href)}
                 className={clsx(
                   "group relative flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1f7a6b]/40",
                   active

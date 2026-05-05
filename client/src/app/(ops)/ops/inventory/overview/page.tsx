@@ -25,9 +25,9 @@ export default function InventoryOverviewPage() {
           compact
         >
           <div className="flex flex-wrap gap-2">
-            <OpsActionButton label="Create Adjustment" href="/ops/inventory/adjustments" />
-            <OpsActionButton label="Post GRN" href="/ops/inventory/receiving" tone="ghost" />
-            <OpsActionButton label="Generate PR" href="/ops/inventory/replenishment" tone="ghost" />
+            <OpsActionButton label="Create Adjustment" href="/admin/inventory/adjustments" />
+            <OpsActionButton label="Post GRN" href="/admin/inventory/goods-received" tone="ghost" />
+            <OpsActionButton label="Generate PR" href="/admin/inventory/purchase-requests" tone="ghost" />
           </div>
         </OpsSection>
       </div>
@@ -35,7 +35,7 @@ export default function InventoryOverviewPage() {
       <OpsSection
         title="Critical Items"
         description="Low stock and expiring items needing attention."
-        action={<OpsActionButton label="Open Alerts" href="/ops/inventory/alerts/low-stock" tone="ghost" />}
+        action={<OpsActionButton label="Open Alerts" href="/admin/inventory/reorder-alerts" tone="ghost" />}
       >
         <OpsTable
           columns={[

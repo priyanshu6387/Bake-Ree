@@ -1,323 +1,390 @@
-import Item from "../models/Item.js";
-import Warehouse from "../models/Warehouse.js";
-import Bin from "../models/Bin.js";
-import StockBatch from "../models/StockBatch.js";
-import StockReservation from "../models/StockReservation.js";
-import StockLedgerEntry from "../models/StockLedgerEntry.js";
-import Adjustment from "../models/Adjustment.js";
-import Transfer from "../models/Transfer.js";
-import WasteLog from "../models/WasteLog.js";
-import ReturnToVendor from "../models/ReturnToVendor.js";
-import ProductionConsumption from "../models/ProductionConsumption.js";
 import {
-  allocateFefoBatches,
-  recordStockMovement,
-  releaseBatchReservations,
-  reserveBatches,
-} from "../services/inventoryLedgerService.js";
-import { emitWasteRecorded } from "../services/inventoryEventService.js";
+  adjustStock,
+  createGoodsReceived,
+  createBatch,
+  createItem,
+  createPurchaseOrder,
+  createPurchaseRequest,
+  createPurchaseReturn,
+  createSupplier,
+  createVendorBill,
+  createVendorPayment,
+  createVendorPrice,
+  getExpiryAlerts,
+  getReorderAlerts,
+  issueStock,
+  listBatches,
+  listGoodsReceived,
+  listItems,
+  listMovements,
+  listPurchaseOrders,
+  listPurchaseRequests,
+  listPurchaseReturns,
+  listSuppliers,
+  listVendorBills,
+  listVendorPayments,
+  listVendorPrices,
+  recordWaste,
+  returnStock,
+  reviewBatch,
+  stockIn,
+  transferStock,
+  updatePurchaseOrderStatus,
+  updatePurchaseRequestStatus,
+  updatePurchaseReturnStatus,
+  updateItem,
+  updateSupplier,
+  updateVendorBillStatus,
+  updateVendorPrice,
+} from "../services/inventoryService.js";
 
-export const listItems = async (_req, res) => {
-  const items = await Item.find().sort({ createdAt: -1 });
-  res.json(items);
-};
-
-export const createItem = async (req, res) => {
-  const item = await Item.create(req.body);
-  res.status(201).json(item);
-};
-
-export const listWarehouses = async (_req, res) => {
-  const warehouses = await Warehouse.find().sort({ createdAt: -1 });
-  res.json(warehouses);
-};
-
-export const createWarehouse = async (req, res) => {
-  const warehouse = await Warehouse.create(req.body);
-  res.status(201).json(warehouse);
-};
-
-export const listBins = async (req, res) => {
-  const { warehouseId } = req.query;
-  const query = {};
-  if (warehouseId) query.warehouseId = warehouseId;
-  const bins = await Bin.find(query).sort({ createdAt: -1 });
-  res.json(bins);
-};
-
-export const createBin = async (req, res) => {
-  const bin = await Bin.create(req.body);
-  res.status(201).json(bin);
-};
-
-export const listBatches = async (req, res) => {
-  const { itemId, warehouseId } = req.query;
-  const query = {};
-  if (itemId) query.itemId = itemId;
-  if (warehouseId) query.warehouseId = warehouseId;
-  const batches = await StockBatch.find(query).sort({ expDate: 1, createdAt: -1 });
-  res.json(batches);
-};
-
-export const listLedger = async (req, res) => {
-  const { itemId, warehouseId, type, refId, from, to } = req.query;
-  const query = {};
-  if (itemId) query.itemId = itemId;
-  if (warehouseId) query.warehouseId = warehouseId;
-  if (type) query.type = type;
-  if (refId) query.refId = refId;
-  if (from || to) {
-    query.ts = {};
-    if (from) query.ts.$gte = new Date(from);
-    if (to) query.ts.$lte = new Date(to);
-  }
-  const entries = await StockLedgerEntry.find(query).sort({ ts: -1 });
-  res.json(entries);
-};
-
-export const createReservation = async (req, res) => {
-  const { itemId, warehouseId, qty, orderId, workOrderId } = req.body;
-  const { allocations, remaining } = await allocateFefoBatches({ itemId, warehouseId, qty });
-
-  if (remaining > 0) {
-    return res.status(409).json({ message: "Insufficient stock to reserve", remaining });
-  }
-
-  await reserveBatches({ allocations });
-
-  const reservation = await StockReservation.create({
-    itemId,
-    warehouseId,
-    qty,
-    orderId,
-    workOrderId,
-    batchIdsAllocated: allocations,
-    status: "reserved",
+const handleError = (res, error) => {
+  const knownNotFound = /not found/i.test(error.message);
+  const knownInvalid = /invalid|required|cannot|must/i.test(error.message);
+  const status = knownNotFound ? 404 : knownInvalid ? 400 : 500;
+  return res.status(status).json({
+    success: false,
+    message: error.message || "Inventory API error",
   });
-
-  res.status(201).json(reservation);
 };
 
-export const consumeReservation = async (req, res) => {
-  const { reservationId } = req.params;
-  const reservation = await StockReservation.findById(reservationId);
-  if (!reservation) return res.status(404).json({ message: "Reservation not found" });
-  if (reservation.status !== "reserved") {
-    return res.status(400).json({ message: "Reservation is not active" });
+export const getItems = async (_req, res) => {
+  try {
+    const items = await listItems();
+    return res.json({ success: true, items });
+  } catch (error) {
+    return handleError(res, error);
   }
-
-  await releaseBatchReservations({ allocations: reservation.batchIdsAllocated });
-
-  for (const allocation of reservation.batchIdsAllocated) {
-    const batch = await StockBatch.findById(allocation.batchId);
-    await recordStockMovement({
-      itemId: reservation.itemId,
-      warehouseId: reservation.warehouseId,
-      batchId: allocation.batchId,
-      type: reservation.workOrderId ? "ISSUE" : "OUT",
-      qty: allocation.qty,
-      uom: "unit",
-      unitCost: batch?.unitCost ?? 0,
-      refType: reservation.workOrderId ? "WORK_ORDER" : "ORDER",
-      refId: reservation.workOrderId ?? reservation.orderId,
-      direction: "out",
-    });
-  }
-
-  reservation.status = "consumed";
-  await reservation.save();
-  res.json(reservation);
 };
 
-export const releaseReservation = async (req, res) => {
-  const { reservationId } = req.params;
-  const reservation = await StockReservation.findById(reservationId);
-  if (!reservation) return res.status(404).json({ message: "Reservation not found" });
-  if (reservation.status !== "reserved") {
-    return res.status(400).json({ message: "Reservation is not active" });
+export const postItem = async (req, res) => {
+  try {
+    const item = await createItem(req.body);
+    return res.status(201).json({ success: true, item });
+  } catch (error) {
+    return handleError(res, error);
   }
-
-  await releaseBatchReservations({ allocations: reservation.batchIdsAllocated });
-  reservation.status = "released";
-  await reservation.save();
-  res.json(reservation);
 };
 
-export const createAdjustment = async (req, res) => {
-  const adjustment = await Adjustment.create(req.body);
-  for (const line of adjustment.items) {
-    const batch = line.batchId ? await StockBatch.findById(line.batchId) : null;
-    const direction = line.qtyDelta < 0 ? "out" : "in";
-    await recordStockMovement({
-      itemId: line.itemId,
-      warehouseId: adjustment.warehouseId,
-      batchId: line.batchId,
-      type: "ADJUST",
-      qty: Math.abs(line.qtyDelta),
-      uom: "unit",
-      unitCost: batch?.unitCost ?? 0,
-      refType: "ADJUSTMENT",
-      refId: adjustment._id.toString(),
-      createdBy: adjustment.createdBy,
-      reasonCode: line.reason,
-      direction,
-    });
+export const patchItem = async (req, res) => {
+  try {
+    const item = await updateItem(req.params.id, req.body);
+    return res.json({ success: true, item });
+  } catch (error) {
+    return handleError(res, error);
   }
-  res.status(201).json(adjustment);
 };
 
-export const createTransfer = async (req, res) => {
-  const transfer = await Transfer.create({ ...req.body, status: "in_transit" });
-  for (const line of transfer.items) {
-    const batch = line.batchId ? await StockBatch.findById(line.batchId) : null;
-    await recordStockMovement({
-      itemId: line.itemId,
-      warehouseId: transfer.fromWarehouseId,
-      batchId: line.batchId,
-      type: "TRANSFER_OUT",
-      qty: line.qty,
-      uom: "unit",
-      unitCost: batch?.unitCost ?? 0,
-      refType: "TRANSFER",
-      refId: transfer._id.toString(),
-      direction: "out",
-    });
+export const getSuppliers = async (_req, res) => {
+  try {
+    const suppliers = await listSuppliers();
+    return res.json({ success: true, suppliers });
+  } catch (error) {
+    return handleError(res, error);
   }
-  res.status(201).json(transfer);
 };
 
-export const receiveTransfer = async (req, res) => {
-  const transfer = await Transfer.findById(req.params.transferId);
-  if (!transfer) return res.status(404).json({ message: "Transfer not found" });
-
-  for (const line of transfer.items) {
-    const sourceBatch = line.batchId ? await StockBatch.findById(line.batchId) : null;
-    let destBatch = await StockBatch.findOne({
-      itemId: line.itemId,
-      warehouseId: transfer.toWarehouseId,
-      lotNumber: sourceBatch?.lotNumber,
-    });
-    if (!destBatch) {
-      destBatch = await StockBatch.create({
-        itemId: line.itemId,
-        warehouseId: transfer.toWarehouseId,
-        lotNumber: sourceBatch?.lotNumber ?? `TR-${transfer._id}`,
-        mfgDate: sourceBatch?.mfgDate,
-        expDate: sourceBatch?.expDate,
-        qtyOnHand: 0,
-        qtyReserved: 0,
-        unitCost: sourceBatch?.unitCost ?? 0,
-        sourceRef: transfer._id.toString(),
-      });
-    }
-
-    await recordStockMovement({
-      itemId: line.itemId,
-      warehouseId: transfer.toWarehouseId,
-      batchId: destBatch._id,
-      type: "TRANSFER_IN",
-      qty: line.qty,
-      uom: "unit",
-      unitCost: destBatch.unitCost,
-      refType: "TRANSFER",
-      refId: transfer._id.toString(),
-      direction: "in",
-    });
+export const postSupplier = async (req, res) => {
+  try {
+    const supplier = await createSupplier(req.body);
+    return res.status(201).json({ success: true, supplier });
+  } catch (error) {
+    return handleError(res, error);
   }
-
-  transfer.status = "received";
-  await transfer.save();
-  res.json(transfer);
 };
 
-export const logWaste = async (req, res) => {
-  const wasteLog = await WasteLog.create(req.body);
-  for (const line of wasteLog.items) {
-    const batch = line.batchId ? await StockBatch.findById(line.batchId) : null;
-    await recordStockMovement({
-      itemId: line.itemId,
-      warehouseId: wasteLog.warehouseId,
-      batchId: line.batchId,
-      type: "WASTE",
-      qty: line.qty,
-      uom: "unit",
-      unitCost: batch?.unitCost ?? 0,
-      refType: "ADJUSTMENT",
-      refId: wasteLog._id.toString(),
-      reasonCode: wasteLog.reason,
-      direction: "out",
-    });
+export const patchSupplier = async (req, res) => {
+  try {
+    const supplier = await updateSupplier(req.params.id, req.body);
+    return res.json({ success: true, supplier });
+  } catch (error) {
+    return handleError(res, error);
   }
-  emitWasteRecorded({ id: wasteLog._id, warehouseId: wasteLog.warehouseId });
-  res.status(201).json(wasteLog);
 };
 
-export const createReturn = async (req, res) => {
-  const returnDoc = await ReturnToVendor.create(req.body);
-  for (const line of returnDoc.items) {
-    const batch = line.batchId ? await StockBatch.findById(line.batchId) : null;
-    await recordStockMovement({
-      itemId: line.itemId,
-      warehouseId: returnDoc.warehouseId,
-      batchId: line.batchId,
-      type: "RETURN",
-      qty: line.qty,
-      uom: "unit",
-      unitCost: batch?.unitCost ?? 0,
-      refType: "RTV",
-      refId: returnDoc._id.toString(),
-      direction: "out",
-    });
+export const getMovements = async (_req, res) => {
+  try {
+    const movements = await listMovements();
+    return res.json({ success: true, movements });
+  } catch (error) {
+    return handleError(res, error);
   }
-  res.status(201).json(returnDoc);
 };
 
-export const createProductionConsumption = async (req, res) => {
-  const production = await ProductionConsumption.create(req.body);
-
-  for (const input of production.inputs) {
-    const batchId = input.batchIds?.[0];
-    const batch = batchId ? await StockBatch.findById(batchId) : null;
-    await recordStockMovement({
-      itemId: input.itemId,
-      warehouseId: production.warehouseId,
-      batchId,
-      type: "ISSUE",
-      qty: input.qty,
-      uom: "unit",
-      unitCost: batch?.unitCost ?? 0,
-      refType: "PRODUCTION",
-      refId: production.workOrderId,
-      direction: "out",
-    });
+export const postStockIn = async (req, res) => {
+  try {
+    const movement = await stockIn(req.body, req.user?._id);
+    return res.status(201).json({ success: true, movement });
+  } catch (error) {
+    return handleError(res, error);
   }
+};
 
-  for (const output of production.outputs) {
-    const batch = await StockBatch.create({
-      itemId: output.itemId,
-      warehouseId: production.warehouseId,
-      lotNumber: output.batch.lotNumber,
-      mfgDate: output.batch.mfgDate,
-      expDate: output.batch.expDate,
-      qtyOnHand: 0,
-      qtyReserved: 0,
-      unitCost: 0,
-      sourceRef: production.workOrderId,
-    });
-
-    await recordStockMovement({
-      itemId: output.itemId,
-      warehouseId: production.warehouseId,
-      batchId: batch._id,
-      type: "PROD_OUT",
-      qty: output.qty,
-      uom: "unit",
-      unitCost: batch.unitCost,
-      refType: "PRODUCTION",
-      refId: production.workOrderId,
-      direction: "in",
-    });
+export const postIssue = async (req, res) => {
+  try {
+    const movement = await issueStock(req.body, req.user?._id);
+    return res.status(201).json({ success: true, movement });
+  } catch (error) {
+    return handleError(res, error);
   }
+};
 
-  res.status(201).json(production);
+export const postWaste = async (req, res) => {
+  try {
+    const movement = await recordWaste(req.body, req.user?._id);
+    return res.status(201).json({ success: true, movement });
+  } catch (error) {
+    return handleError(res, error);
+  }
+};
+
+export const postReturn = async (req, res) => {
+  try {
+    const movement = await returnStock(req.body, req.user?._id);
+    return res.status(201).json({ success: true, movement });
+  } catch (error) {
+    return handleError(res, error);
+  }
+};
+
+export const postAdjustment = async (req, res) => {
+  try {
+    const movement = await adjustStock(req.body, req.user?._id);
+    return res.status(201).json({ success: true, movement });
+  } catch (error) {
+    return handleError(res, error);
+  }
+};
+
+export const postTransfer = async (req, res) => {
+  try {
+    const movement = await transferStock(req.body, req.user?._id);
+    return res.status(201).json({ success: true, movement });
+  } catch (error) {
+    return handleError(res, error);
+  }
+};
+
+export const getBatches = async (_req, res) => {
+  try {
+    const batches = await listBatches();
+    return res.json({ success: true, batches });
+  } catch (error) {
+    return handleError(res, error);
+  }
+};
+
+export const postBatch = async (req, res) => {
+  try {
+    const batch = await createBatch(req.body);
+    return res.status(201).json({ success: true, batch });
+  } catch (error) {
+    return handleError(res, error);
+  }
+};
+
+export const patchBatchReview = async (req, res) => {
+  try {
+    const batch = await reviewBatch(req.params.id, req.body);
+    return res.json({ success: true, batch });
+  } catch (error) {
+    return handleError(res, error);
+  }
+};
+
+export const getReorderAlertsController = async (_req, res) => {
+  try {
+    const items = await getReorderAlerts();
+    return res.json({ success: true, items });
+  } catch (error) {
+    return handleError(res, error);
+  }
+};
+
+export const getExpiryAlertsController = async (_req, res) => {
+  try {
+    const batches = await getExpiryAlerts();
+    return res.json({ success: true, batches });
+  } catch (error) {
+    return handleError(res, error);
+  }
+};
+
+export const getVendorPrices = async (_req, res) => {
+  try {
+    const vendorPrices = await listVendorPrices();
+    return res.json({ success: true, vendorPrices });
+  } catch (error) {
+    return handleError(res, error);
+  }
+};
+
+export const postVendorPrice = async (req, res) => {
+  try {
+    const vendorPrice = await createVendorPrice(req.body);
+    return res.status(201).json({ success: true, vendorPrice });
+  } catch (error) {
+    return handleError(res, error);
+  }
+};
+
+export const patchVendorPrice = async (req, res) => {
+  try {
+    const vendorPrice = await updateVendorPrice(req.params.id, req.body);
+    return res.json({ success: true, vendorPrice });
+  } catch (error) {
+    return handleError(res, error);
+  }
+};
+
+export const getPurchaseRequests = async (_req, res) => {
+  try {
+    const purchaseRequests = await listPurchaseRequests();
+    return res.json({ success: true, purchaseRequests });
+  } catch (error) {
+    return handleError(res, error);
+  }
+};
+
+export const postPurchaseRequest = async (req, res) => {
+  try {
+    const purchaseRequest = await createPurchaseRequest(req.body);
+    return res.status(201).json({ success: true, purchaseRequest });
+  } catch (error) {
+    return handleError(res, error);
+  }
+};
+
+export const patchPurchaseRequestStatus = async (req, res) => {
+  try {
+    const purchaseRequest = await updatePurchaseRequestStatus(req.params.id, req.body);
+    return res.json({ success: true, purchaseRequest });
+  } catch (error) {
+    return handleError(res, error);
+  }
+};
+
+export const getPurchaseOrders = async (_req, res) => {
+  try {
+    const purchaseOrders = await listPurchaseOrders();
+    return res.json({ success: true, purchaseOrders });
+  } catch (error) {
+    return handleError(res, error);
+  }
+};
+
+export const postPurchaseOrder = async (req, res) => {
+  try {
+    const purchaseOrder = await createPurchaseOrder(req.body);
+    return res.status(201).json({ success: true, purchaseOrder });
+  } catch (error) {
+    return handleError(res, error);
+  }
+};
+
+export const patchPurchaseOrderStatus = async (req, res) => {
+  try {
+    const purchaseOrder = await updatePurchaseOrderStatus(req.params.id, req.body);
+    return res.json({ success: true, purchaseOrder });
+  } catch (error) {
+    return handleError(res, error);
+  }
+};
+
+export const getGoodsReceived = async (_req, res) => {
+  try {
+    const goodsReceived = await listGoodsReceived();
+    return res.json({ success: true, goodsReceived });
+  } catch (error) {
+    return handleError(res, error);
+  }
+};
+
+export const postGoodsReceived = async (req, res) => {
+  try {
+    const goodsReceipt = await createGoodsReceived(req.body);
+    return res.status(201).json({
+      success: true,
+      goodsReceipt,
+      message: "Use Stock In page to update inventory stock.",
+    });
+  } catch (error) {
+    return handleError(res, error);
+  }
+};
+
+export const getVendorBills = async (_req, res) => {
+  try {
+    const vendorBills = await listVendorBills();
+    return res.json({ success: true, vendorBills });
+  } catch (error) {
+    return handleError(res, error);
+  }
+};
+
+export const postVendorBill = async (req, res) => {
+  try {
+    const vendorBill = await createVendorBill(req.body);
+    return res.status(201).json({ success: true, vendorBill });
+  } catch (error) {
+    return handleError(res, error);
+  }
+};
+
+export const patchVendorBillStatus = async (req, res) => {
+  try {
+    const vendorBill = await updateVendorBillStatus(req.params.id, req.body);
+    return res.json({ success: true, vendorBill });
+  } catch (error) {
+    return handleError(res, error);
+  }
+};
+
+export const getVendorPayments = async (_req, res) => {
+  try {
+    const vendorPayments = await listVendorPayments();
+    return res.json({ success: true, vendorPayments });
+  } catch (error) {
+    return handleError(res, error);
+  }
+};
+
+export const postVendorPayment = async (req, res) => {
+  try {
+    const vendorPayment = await createVendorPayment(req.body);
+    return res.status(201).json({ success: true, vendorPayment });
+  } catch (error) {
+    return handleError(res, error);
+  }
+};
+
+export const getPurchaseReturns = async (_req, res) => {
+  try {
+    const purchaseReturns = await listPurchaseReturns();
+    return res.json({ success: true, purchaseReturns });
+  } catch (error) {
+    return handleError(res, error);
+  }
+};
+
+export const postPurchaseReturn = async (req, res) => {
+  try {
+    const purchaseReturn = await createPurchaseReturn(req.body);
+    return res.status(201).json({
+      success: true,
+      purchaseReturn,
+      message: "Use Stock In page to update inventory stock.",
+    });
+  } catch (error) {
+    return handleError(res, error);
+  }
+};
+
+export const patchPurchaseReturnStatus = async (req, res) => {
+  try {
+    const purchaseReturn = await updatePurchaseReturnStatus(req.params.id, req.body);
+    return res.json({ success: true, purchaseReturn });
+  } catch (error) {
+    return handleError(res, error);
+  }
 };
